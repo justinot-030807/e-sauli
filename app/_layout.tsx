@@ -16,6 +16,9 @@ export default function RootLayout() {
         <Stack.Screen name="pending-approval" />
         <Stack.Screen name="items/[id]" options={{ headerShown: true }} />
         <Stack.Screen name="items/post" options={{ headerShown: true }} />
+        <Stack.Screen name="claims/create" options={{ headerShown: true }} />
+        <Stack.Screen name="claims/[id]" options={{ headerShown: true }} />
+        <Stack.Screen name="chat/[claimId]" options={{ headerShown: true }} />
       </Stack>
     </AuthProvider>
   );

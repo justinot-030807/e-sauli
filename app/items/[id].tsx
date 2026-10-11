@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   ScrollView,
   Image,
@@ -15,6 +16,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { Spacing, FontSize, BorderRadius } from '@/constants/theme';
 import { CATEGORY_ICONS, type ItemCategory } from '@/constants/categories';
 import { fetchItemDetail, type ItemDetailResponse } from '@/services/items';
+import { initiateLostItemContact, fetchClaimsForItem, type ClaimWithMeta } from '@/services/claims';
 import { supabase } from '@/lib/supabase';
 import { LoadingView, ErrorView } from '@/components/StateViews';
 import type { ReportReason } from '@/types/database';
@@ -24,8 +26,14 @@ export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [detail, setDetail] = useState<ItemDetailResponse | null>(null);
+  const [existingClaims, setExistingClaims] = useState<ClaimWithMeta[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Contact Modal States (for Lost posts)
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [contactMessage, setContactMessage] = useState('');
+  const [isSubmittingContact, setIsSubmittingContact] = useState(false);
 
   // Report Modal States
   const [showReportModal, setShowReportModal] = useState(false);
@@ -39,6 +47,11 @@ export default function ItemDetailScreen() {
       setError(null);
       const res = await fetchItemDetail(id);
       setDetail(res);
+
+      if (res.isOwner) {
+        const claims = await fetchClaimsForItem(id);
+        setExistingClaims(claims);
+      }
     } catch (err: any) {
       console.error('Error loading item detail:', err);
       setError(err?.message || 'Hindi maikarga ang impormasyon ng gamit.');
@@ -249,20 +262,47 @@ export default function ItemDetailScreen() {
         {/* Action Buttons */}
         <View style={styles.actionContainer}>
           {isOwner ? (
-            <View style={[styles.ownerBadge, { backgroundColor: theme.accent + '25' }]}>
-              <Text style={[styles.ownerBadgeText, { color: '#8F6600' }]}>
-                ⭐ Ikaw ang nag-post ng gamit na ito
-              </Text>
+            <View>
+              <View style={[styles.ownerBadge, { backgroundColor: theme.accent + '25' }]}>
+                <Text style={[styles.ownerBadgeText, { color: '#8F6600' }]}>
+                  ⭐ Ikaw ang nag-post ng gamit na ito
+                </Text>
+              </View>
+
+              {existingClaims.length > 0 && (
+                <View style={styles.ownerClaimsSection}>
+                  <Text style={[styles.ownerClaimsTitle, { color: theme.text }]}>
+                    Mga Isinumiteng Claim ({existingClaims.length})
+                  </Text>
+                  {existingClaims.map((cl) => (
+                    <TouchableOpacity
+                      key={cl.id}
+                      style={[styles.claimRow, { backgroundColor: theme.card, borderColor: theme.border }]}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/claims/[id]',
+                          params: { id: cl.id },
+                        })
+                      }
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.claimRowName, { color: theme.text }]}>
+                          👤 {cl.claimantNickname}
+                        </Text>
+                        <Text style={[styles.claimRowStatus, { color: theme.textSecondary }]}>
+                          Katayuan: {cl.status.toUpperCase()}
+                        </Text>
+                      </View>
+                      <Text style={[styles.claimRowArrow, { color: theme.primary }]}>Suriin ➤</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
           ) : isLost ? (
             <TouchableOpacity
               style={[styles.primaryActionBtn, { backgroundColor: theme.primary }]}
-              onPress={() => {
-                Alert.alert(
-                  'Nahanap Mo Ba Ito?',
-                  'Makikipag-ugnayan ka sa may-ari ng post sa Phase 4 (Chat & Claims).'
-                );
-              }}
+              onPress={() => setShowContactModal(true)}
               activeOpacity={0.85}
             >
               <Text style={styles.primaryActionBtnText}>🤝 Nahanap Ko Ito</Text>
@@ -270,12 +310,12 @@ export default function ItemDetailScreen() {
           ) : (
             <TouchableOpacity
               style={[styles.primaryActionBtn, { backgroundColor: '#1E5B32' }]}
-              onPress={() => {
-                Alert.alert(
-                  'Pag-claim ng Item',
-                  'Ang proseso ng verification at secret question claim ay magsisimula sa Phase 4.'
-                );
-              }}
+              onPress={() =>
+                router.push({
+                  pathname: '/claims/create',
+                  params: { itemId: item.id },
+                })
+              }
               activeOpacity={0.85}
             >
               <Text style={styles.primaryActionBtnText}>✨ I-claim ang Gamit</Text>
@@ -283,6 +323,82 @@ export default function ItemDetailScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Contact Modal (for Lost items) */}
+      <Modal
+        visible={showContactModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowContactModal(false)}
+      >
+        <View style={styles.reportModalOverlay}>
+          <View style={[styles.reportModalContent, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.reportModalTitle, { color: theme.text }]}>
+              Nahanap Mo Ba Ito?
+            </Text>
+            <Text style={[styles.reportModalSubtitle, { color: theme.textSecondary }]}>
+              Magpadala ng mensahe sa nag-post upang mapagkasunduan ang pagbabalik ng gamit.
+            </Text>
+
+            <TextInput
+              style={[
+                styles.contactInput,
+                {
+                  backgroundColor: theme.inputBackground,
+                  borderColor: theme.border,
+                  color: theme.text,
+                },
+              ]}
+              placeholder="Hal: Nahanap ko ang gamit mo sa Library 2nd floor kaninang umaga..."
+              placeholderTextColor={theme.placeholder}
+              value={contactMessage}
+              onChangeText={setContactMessage}
+              multiline
+              numberOfLines={4}
+            />
+
+            <View style={styles.reportBtnRow}>
+              <TouchableOpacity
+                style={[styles.reportCancelBtn, { borderColor: theme.border }]}
+                onPress={() => setShowContactModal(false)}
+                disabled={isSubmittingContact}
+              >
+                <Text style={[styles.reportCancelBtnText, { color: theme.text }]}>Kanselahin</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.reportSubmitBtn, { backgroundColor: theme.primary }]}
+                onPress={async () => {
+                  if (!contactMessage.trim()) {
+                    Alert.alert('Puna', 'Pakisulat ang iyong mensahe.');
+                    return;
+                  }
+                  try {
+                    setIsSubmittingContact(true);
+                    const claim = await initiateLostItemContact(item.id, contactMessage);
+                    setShowContactModal(false);
+                    router.push({
+                      pathname: '/chat/[claimId]',
+                      params: { claimId: claim.id },
+                    });
+                  } catch (err: any) {
+                    Alert.alert('Nagka-aberya', err?.message || 'Hindi naipadala ang mensahe.');
+                  } finally {
+                    setIsSubmittingContact(false);
+                  }
+                }}
+                disabled={isSubmittingContact}
+              >
+                {isSubmittingContact ? (
+                  <ActivityIndicator color="#ffffff" size="small" />
+                ) : (
+                  <Text style={styles.reportSubmitBtnText}>Ipadala at Mag-chat</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Report Modal */}
       <Modal
@@ -571,5 +687,42 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: FontSize.sm,
     fontWeight: '700',
+  },
+  ownerClaimsSection: {
+    marginTop: Spacing.md,
+  },
+  ownerClaimsTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    marginBottom: Spacing.sm,
+  },
+  claimRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    marginBottom: Spacing.xs,
+  },
+  claimRowName: {
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  claimRowStatus: {
+    fontSize: FontSize.xs,
+  },
+  claimRowArrow: {
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+  },
+  contactInput: {
+    height: 100,
+    borderWidth: 1,
+    borderRadius: BorderRadius.sm,
+    padding: Spacing.md,
+    fontSize: FontSize.sm,
+    textAlignVertical: 'top',
+    marginBottom: Spacing.md,
   },
 });
