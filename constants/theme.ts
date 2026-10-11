@@ -1,0 +1,71 @@
+export const Colors = {
+  light: {
+    primary: '#7a1f2b',
+    accent: '#e3b23c',
+    background: '#f8f3f2',
+    surface: '#ffffff',
+    text: '#1a0d0f',
+    textSecondary: '#6b5a5e',
+    border: '#e0d5d7',
+    error: '#dc3545',
+    success: '#28a745',
+    warning: '#ffc107',
+    info: '#17a2b8',
+    card: '#ffffff',
+    inputBackground: '#ffffff',
+    placeholder: '#9b8a8e',
+    disabled: '#c4b8bb',
+    tabBar: '#ffffff',
+    tabBarBorder: '#e0d5d7',
+    headerBackground: '#7a1f2b',
+    headerText: '#ffffff',
+  },
+  dark: {
+    primary: '#a83246',
+    accent: '#e3b23c',
+    background: '#1a0d0f',
+    surface: '#2a1a1d',
+    text: '#f8f3f2',
+    textSecondary: '#b5a3a7',
+    border: '#3d2a2e',
+    error: '#ff6b7a',
+    success: '#4ade80',
+    warning: '#fbbf24',
+    info: '#38bdf8',
+    card: '#2a1a1d',
+    inputBackground: '#2a1a1d',
+    placeholder: '#7a6a6e',
+    disabled: '#4a3a3e',
+    tabBar: '#2a1a1d',
+    tabBarBorder: '#3d2a2e',
+    headerBackground: '#2a1a1d',
+    headerText: '#f8f3f2',
+  },
+} as const;
+
+export const Spacing = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48,
+} as const;
+
+export const FontSize = {
+  xs: 12,
+  sm: 14,
+  md: 16,
+  lg: 18,
+  xl: 22,
+  xxl: 28,
+  xxxl: 34,
+} as const;
+
+export const BorderRadius = {
+  sm: 6,
+  md: 10,
+  lg: 16,
+  xl: 24,
+  full: 9999,
+} as const;
