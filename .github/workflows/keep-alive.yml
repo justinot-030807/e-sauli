@@ -1,0 +1,33 @@
+name: Keep Supabase Project Active
+
+on:
+  schedule:
+    # Run every 3 days at 06:00 UTC (14:00 Asia/Manila)
+    - cron: '0 6 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping Supabase REST API
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase System Settings
+        env:
+          SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "Skipping ping: SUPABASE_URL or SUPABASE_ANON_KEY secret not configured in GitHub repository."
+            exit 0
+          fi
+          echo "Pinging Supabase REST API..."
+          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/system_settings?select=key&limit=1")
+          echo "Response HTTP status: $STATUS_CODE"
+          if [ "$STATUS_CODE" -ge 200 ] && [ "$STATUS_CODE" -lt 400 ]; then
+            echo "Successfully kept Supabase project active."
+          else
+            echo "Warning: Received unexpected status code $STATUS_CODE"
+          fi

@@ -1,188 +1,192 @@
-# MarSU Lost & Found
+# MarSU Lost & Found ("E-Sauli")
 
-A Lost & Found application for Marinduque State University (MarSU) with secure claims, real-time notifications, gamified achievements, and admin moderation.
+A secure, mobile-first Lost & Found application for **Marinduque State University (MarSU)** featuring server-enforced claims, cryptographic cash/wallet verification, real-time notifications, gamified points and badges, and a comprehensive admin moderation system.
+
+---
 
 ## Tech Stack
 
-- **Frontend**: Expo, React Native, TypeScript, Expo Router
-- **Backend**: Supabase (Auth, PostgreSQL, RLS, Storage, Realtime, Edge Functions)
+- **Frontend**: Expo SDK 52, React Native, TypeScript, Expo Router (file-based navigation)
+- **Backend**: Supabase (PostgreSQL 15+, Row Level Security, Storage, Realtime, Edge Functions)
 - **Deployment**: Web/PWA via Vercel, Android APK via EAS Build
 
-## Setup Guide
+---
 
-### 1. Create Supabase Project
+## System Configuration & Setup Guide
 
-1. Go to [supabase.com](https://supabase.com) and create a new project
-2. Note your **Project URL** and **Anon Key** from Settings → API
+### 1. Supabase Project Creation
+1. Go to [supabase.com](https://supabase.com) and create a new project.
+2. Choose a region close to the Philippines (e.g., `Singapore - ap-southeast-1`).
+3. Note your **Project URL** and **Anon Public Key** from **Project Settings → API**.
 
-### 2. Run SQL Migration
+### 2. SQL Migrations
+Execute the migration files sequentially in the Supabase SQL Editor:
+1. `supabase/migrations/00001_initial_schema.sql` — 18 core tables, security constraints, basic triggers, RLS policies, and system settings.
+2. `supabase/migrations/00002_return_and_jobs_rpc.sql` — Return confirmation, office handover, auto-confirm cron, dispute auto-freeze, 30-day expiration, and points calculation.
+3. `supabase/migrations/00003_leaderboard_rpc.sql` — Privacy-preserving leaderboard ranking RPC with college filters and podium rankings.
+4. `supabase/migrations/00004_admin_and_moderation_rpc.sql` — Admin approval, suspension, content moderation, dispute resolution, controlled point reversals, and lockout overrides.
 
-1. Open the Supabase SQL Editor
-2. Copy the contents of `supabase/migrations/00001_initial_schema.sql`
-3. Execute the entire file
-4. Verify: all tables, RLS policies, triggers, and seed data should be created
+### 3. Auth Configuration
+1. Go to **Authentication → Providers → Email**.
+2. Enable the **Email provider**.
+3. Enable **Confirm email** (ensures unverified users cannot bypass registration).
+4. Set **Site URL** to `http://localhost:8081` (for local Expo web) or your deployed production domain.
+5. Add Redirect URLs:
+   - `marsu-lf://` (for deep linking on Android/iOS)
+   - `http://localhost:8081` (local development)
 
-### 3. Configure Auth
-
-1. Go to Authentication → Settings
-2. Enable **Email provider**
-3. Enable **Confirm email** (email verification)
-4. Set Site URL to your app's URL (e.g., `http://localhost:8081` for development)
-5. Add redirect URLs:
-   - `marsu-lf://` (for native app deep linking)
-   - `http://localhost:8081` (for web development)
-
-### 4. Email Verification
-
-The default Supabase email service is heavily rate-limited (2-3 emails/hour).
-
-**For production**, set up free custom SMTP:
-- [Resend](https://resend.com) — 3,000 emails/month free
-- [Brevo](https://brevo.com) — 300 emails/day free
-
-Configure in Supabase Dashboard → Settings → Auth → SMTP Settings.
+### 4. Email Verification & Custom SMTP
+The Supabase default email service is rate-limited to 2–3 emails/hour. For production:
+1. Sign up for a free SMTP provider such as [Resend](https://resend.com) (3,000 emails/month free) or [Brevo](https://brevo.com) (300 emails/day free).
+2. Go to **Project Settings → Authentication → SMTP Settings** in Supabase.
+3. Configure your custom SMTP credentials and sender address (e.g., `noreply@marsu.edu.ph`).
 
 ### 5. School Domain Configuration
+The registration flow uses the `system_settings` table:
+- `require_school_email` (default: `true`): When true, only emails matching `@marsu.edu.ph` can register.
+- `school_email_domain` (default: `marsu.edu.ph`): Configured school domain.
 
-The system uses `system_settings` table for configuration:
-
-| Key | Default | Description |
-|-----|---------|-------------|
-| `require_school_email` | `true` | Require school email for registration |
-| `school_email_domain` | `marsu.edu.ph` | Allowed email domain |
-
-**If `require_school_email` = `true`**: Only `@marsu.edu.ph` emails auto-approve.
-**If `require_school_email` = `false`**: Any email can register, but users start as `pending` and require admin approval.
+Domain restrictions are strictly validated server-side by database trigger `enforce_school_email_domain()`.
 
 ### 6. Fallback Mode
+If `require_school_email` is set to `false`:
+- Users may register with personal email providers (Gmail, Outlook, Yahoo).
+- Required profile fields: `student_id`, `full_name`, `nickname`, `college`.
+- The user account starts in `approval_status = 'pending'`.
+- The student cannot post items, submit claims, or send chat messages until approved by an administrator in the Admin Panel.
 
-When school email is not required:
-- Users must provide `student_id`, `full_name`, `nickname`, and `college`
-- `approval_status` starts as `pending`
-- Users cannot post, claim, or chat until approved by admin
-
-### 7. First Admin Setup
-
-Run this SQL in the Supabase SQL Editor after your first admin registers:
+### 7. First Admin SQL Setup
+For security, the client application can **never** grant admin privileges. Grant the first administrator account via the Supabase SQL Editor:
 
 ```sql
-UPDATE profiles
-SET role = 'admin'
+UPDATE public.profiles
+SET role = 'admin', approval_status = 'approved'
 WHERE id = (SELECT id FROM auth.users WHERE email = 'admin@marsu.edu.ph');
 ```
 
-> ⚠️ Admin roles can ONLY be granted via direct database access. The client cannot grant admin roles.
-
 ### 8. Storage Configuration
-
-1. Go to Storage in Supabase Dashboard
-2. Create a **private** bucket named `item-photos`
-3. Do NOT enable public access
-4. Photos are served via short-lived signed URLs
+1. Go to **Storage** in the Supabase Dashboard.
+2. Verify the `item-photos` bucket is created and set to **Private** (`public = false`).
+3. Images are uploaded with client-side compression (max 1280px, ~200KB target, GPS/EXIF metadata stripped).
+4. Category policy blocks photo uploads for Cash, Wallet, and ID cards.
+5. Images are accessed solely via short-lived signed URLs.
 
 ### 9. Edge Functions
+The project provides two server-side Supabase Edge Functions:
+1. `supabase/functions/verify-cash-amount` — Server-side HMAC comparison for Cash and Wallet claims with 3-attempt lockout enforcement.
+2. `supabase/functions/scheduled-jobs` — Background automation for 30-day auto-expiration, 7-day auto-confirmation, 60-day storage photo cleanup via Storage API, and Day 5 return reminders.
 
-Edge Functions handle:
-- HMAC generation/comparison for cash amounts
-- Photo cleanup for returned/expired items
-- Scheduled jobs (auto-confirm, auto-expire)
-
-Deploy with:
+Deploy using Supabase CLI:
 ```bash
-supabase functions deploy
+supabase functions deploy verify-cash-amount
+supabase functions deploy scheduled-jobs
+```
+
+Set server-side secrets:
+```bash
+supabase secrets set ITEM_HMAC_SECRET="your_secure_random_hmac_secret_key"
 ```
 
 ### 10. Scheduled Jobs
-
-Set up cron jobs for:
-- **Auto-expiration**: Expire items after 30 days
-- **Auto-confirm**: Auto-confirm returned items after 7 days
-- **Photo cleanup**: Delete photos for returned/expired items after 60 days
-- **Reward validation**: Validate found-post rewards (reject if deleted within 7 days)
-- **Notification reminders**: Remind owners at day 5 of return
+Set up recurring cron triggers or call the `scheduled-jobs` Edge Function:
+- **Auto-Expiration (30 Days)**: Archives lost posts and flags unreturned found items for office custody.
+- **Auto-Confirmation (7 Days)**: Marks released items as returned after 7 days if unconfirmed, awarding finder points (+50).
+- **Photo Cleanup (60 Days)**: Permanently purges photos of resolved items from the Storage bucket.
+- **Return Reminder (Day 5)**: Alerts owners 2 days before auto-confirmation takes effect.
 
 ### 11. Install Dependencies
-
 ```bash
 npm install
 ```
 
 ### 12. Start Development
-
 ```bash
 npx expo start
 ```
 
 ### 13. Expo Go QR Scanning
-
-1. Install Expo Go on your phone
-2. Scan the QR code shown in the terminal
-3. The app will load on your device
+1. Install **Expo Go** from Google Play Store or Apple App Store.
+2. Scan the terminal QR code using Expo Go (Android) or the default Camera app (iOS).
+3. The app will launch with fast-refresh enabled.
 
 ### 14. Web Export
-
+Export the static single-page web bundle:
 ```bash
 npx expo export -p web
 ```
+Assets are generated in the `dist/` directory.
 
 ### 15. Vercel Deployment
+1. Push repository to GitHub.
+2. Import project in [Vercel](https://vercel.com).
+3. Set Framework Preset to **Other**.
+4. Set Build Command: `npx expo export -p web`
+5. Set Output Directory: `dist`
+6. Configure environment variables (`EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`).
 
-1. Push to GitHub
-2. Import in Vercel
-3. Set build command: `npx expo export -p web`
-4. Set output directory: `dist`
-5. Configure to serve under `/app` path if needed
+### 16. `/app` Configuration
+For multi-app hosting or subpath deployments where the app resides under `/app`, [`vercel.json`](file:///c:/Users/Hp/LOST&FOUNDAPP/vercel.json) includes SPA rewrite rules mapping `/app/(.*)` and `/(.*)` directly to `/index.html` to guarantee proper Expo Router deep-linking resolution without 404 routing errors.
 
-### 16. EAS Android APK
-
+### 17. EAS Android APK
+Build a standalone installable Android APK without local Android Studio or native toolchains:
 ```bash
+# Preview build (outputs direct .apk file)
 npx eas-cli build --platform android --profile preview
+
+# Production build (outputs Google Play Store .aab bundle)
+npx eas-cli build --platform android --profile production
 ```
+Configured in [`eas.json`](file:///c:/Users/Hp/LOST&FOUNDAPP/eas.json).
 
-### 17. Environment Variables
-
-Create a `.env` file from `.env.example`:
+### 18. Environment Variables
+Create `.env` based on `.env.example`:
 
 ```bash
-cp .env.example .env
+# Client Variables (Bundled into app)
+EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+
+# Server-Only Variables (Supabase Edge Function Secrets - NEVER expose in client)
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+ITEM_HMAC_SECRET=your-random-hmac-secret-string
 ```
 
-**Client-side** (exposed in app bundle):
-- `EXPO_PUBLIC_SUPABASE_URL` — Your Supabase project URL
-- `EXPO_PUBLIC_SUPABASE_ANON_KEY` — Your Supabase anon key
+### 19. Security Testing (`SECURITY_TEST.md`)
+Run the 18-assertion automated security test suite:
+1. Open the Supabase SQL Editor.
+2. Paste and run [`supabase/tests/security_tests.sql`](file:///c:/Users/Hp/LOST&FOUNDAPP/supabase/tests/security_tests.sql).
+3. The test runs within an isolated rollback transaction, testing role protection, RLS enforcement, points immutability, dispute auto-freezing, leaderboard privacy, and admin point reversals.
 
-**Server-only** (Supabase Edge Function secrets):
-- `SUPABASE_SERVICE_ROLE_KEY` — Service role key (NEVER in client)
-- `ITEM_HMAC_SECRET` — HMAC secret for cash verification (NEVER in client)
+See [`SECURITY_TEST.md`](file:///c:/Users/Hp/LOST&FOUNDAPP/SECURITY_TEST.md) for full case coverage.
 
-### 18. Security Testing
+### 20. Optional: Expo Push Notifications
+In-app notifications powered by Supabase Realtime serve as the primary notification pipeline. Expo Push Notifications are fully optional and the application remains 100% functional without push credentials.
 
-See `SECURITY_TEST.md` for the complete security test checklist.
+### 21. Free-Tier Keep-Alive
+Supabase free-tier projects pause after 7 days of inactivity. The repository includes [`.github/workflows/keep-alive.yml`](file:///c:/Users/Hp/LOST&FOUNDAPP/.github/workflows/keep-alive.yml), which automatically executes a lightweight REST ping every 3 days using GitHub Actions secrets (`EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`).
 
-### 19. Optional: Expo Push Notifications
+---
 
-Push notifications are **optional**. The app works fully with Supabase Realtime in-app notifications. Push can be added later without breaking functionality.
+## Design System Tokens
 
-### 20. Keep-Alive
+| Token | Value | Description |
+|---|---|---|
+| Primary | `#7a1f2b` | MarSU Maroon |
+| Accent | `#e3b23c` | MarSU Gold |
+| Background (Light) | `#f8f3f2` | Light Warm Gray |
+| Background (Dark) | `#1a0d0f` | Deep Maroon Dark |
+| Card / Surface | `#ffffff` | Clean Card Surface |
+| Border | `#e0d5d5` | Subtle Outline |
 
-An optional GitHub Actions workflow is provided to keep the Supabase free-tier project active. See `.github/workflows/keep-alive.yml`.
+---
 
-## Design
+## Development Phases Status
 
-| Token | Value |
-|-------|-------|
-| Primary | `#7a1f2b` |
-| Accent | `#e3b23c` |
-| Light Background | `#f8f3f2` |
-| Dark Background | `#1a0d0f` |
-
-## Development Phases
-
-1. ✅ Database, Auth, Profiles, RLS, Storage Security
-2. Security Tests (initial)
-3. Post Item, Feed, Search, Filters, Item Details
-4. Claims, Secret Questions, Private Verification, Chat, Realtime Notifications
-5. Return Flow, Office Handover, Auto-Confirm, Disputes, Expiration, Points, Badges
-6. Leaderboard, Profile, Achievements
-7. Reports, Admin Dashboard, Moderation, Anti-Abuse, Audit Logs, Scheduled Jobs
-8. Final Security Audit, Performance, Mobile/Web/Deployment Testing
+- [x] **Phase 1**: Database schema, Auth, Profiles, RLS, Storage policies, Auth screens (`2f2b78b`)
+- [x] **Phase 2**: Rate limiting, Auto-reject, 3-strike lockout, Account deletion, Security test suite (`0b31803`)
+- [x] **Phase 3**: Items feed, Category/Location filters, Privacy masking, Deterministic matching (`104f118`)
+- [x] **Phase 4**: Claims, Secret questions, HMAC verification, Realtime chat, Notifications tab (`b5d73a1`)
+- [x] **Phase 5**: Return flow, Office handover, Auto-confirm, Disputes, Expiration, Points, Badges (`92217a4`)
+- [x] **Phase 6**: Leaderboard with privacy masks, Profile statistics, Mga Post Ko, Achievements (`eb4e4aa`)
+- [x] **Phase 7**: Admin dashboard, Moderation, Dispute resolutions, Point reversals, Audit logs (`29111aa`)
+- [x] **Phase 8**: Final security audit, Performance verification, EAS/Vercel deployment configs, Documentation
