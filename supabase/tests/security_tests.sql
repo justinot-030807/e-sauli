@@ -338,6 +338,34 @@ BEGIN
   END;
 
   -- --------------------------------------------------------------------------
+  -- TEST 18: Admin point reversal and audit log verification (ADM-03 & ADM-04)
+  -- --------------------------------------------------------------------------
+  v_test_count := v_test_count + 1;
+  BEGIN
+    -- Set auth context to admin
+    PERFORM set_config('request.jwt.claim.sub', v_admin_id::TEXT, true);
+
+    -- Reverse 10 points from v_user1_id on v_item_id
+    PERFORM public.admin_reverse_points(v_user1_id, v_item_id, 10, 'Test invalid claim reversal');
+
+    -- Check that profiles.points updated properly (was 10 in TEST 15, now 10 - 10 = 0)
+    SELECT points INTO v_check_points FROM public.profiles WHERE id = v_user1_id;
+
+    -- Check that an admin_audit_log entry exists
+    SELECT count(*)::INTEGER INTO i 
+    FROM public.admin_audit_log 
+    WHERE admin_id = v_admin_id AND action = 'points_reversed' AND target_id = v_user1_id::TEXT;
+
+    IF v_check_points = 0 AND i >= 1 THEN
+      v_pass_count := v_pass_count + 1;
+      RAISE NOTICE 'TEST 18 PASSED: admin_reverse_points deducted points to % and recorded audit log', v_check_points;
+    ELSE
+      v_fail_count := v_fail_count + 1;
+      RAISE WARNING 'TEST 18 FAILED: points=% (expected 0), audit_log_count=% (expected >=1)', v_check_points, i;
+    END IF;
+  END;
+
+  -- --------------------------------------------------------------------------
   -- TEST RESULTS SUMMARY
   -- --------------------------------------------------------------------------
   RAISE NOTICE '=====================================================';

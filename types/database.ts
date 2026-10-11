@@ -449,6 +449,66 @@ export type Database = {
           points_to_top10: number;
         }[];
       };
+      admin_set_user_approval: {
+        Args: {
+          p_target_user_id: string;
+          p_new_status: ApprovalStatus;
+        };
+        Returns: void;
+      };
+      admin_set_user_suspended: {
+        Args: {
+          p_target_user_id: string;
+          p_is_suspended: boolean;
+          p_reason?: string;
+        };
+        Returns: void;
+      };
+      admin_moderate_item: {
+        Args: {
+          p_target_item_id: string;
+          p_action: string;
+          p_reason?: string;
+        };
+        Returns: void;
+      };
+      admin_resolve_dispute: {
+        Args: {
+          p_dispute_id: string;
+          p_resolution_note: string;
+        };
+        Returns: void;
+      };
+      admin_reverse_points: {
+        Args: {
+          p_target_user_id: string;
+          p_target_item_id: string;
+          p_points_to_deduct: number;
+          p_reason: string;
+        };
+        Returns: void;
+      };
+      admin_override_lockout: {
+        Args: {
+          p_item_id: string;
+          p_user_id: string;
+          p_reason?: string;
+        };
+        Returns: void;
+      };
+      get_admin_stats: {
+        Args: Record<string, never>;
+        Returns: {
+          total_users: number;
+          pending_users: number;
+          active_items: number;
+          office_items: number;
+          pending_claims: number;
+          open_disputes: number;
+          total_returns: number;
+          unresolved_reports: number;
+        };
+      };
     };
   };
 }

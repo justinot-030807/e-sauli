@@ -21,6 +21,7 @@ export default function RootLayout() {
         <Stack.Screen name="chat/[claimId]" options={{ headerShown: true }} />
         <Stack.Screen name="items/confirm-return" options={{ headerShown: true }} />
         <Stack.Screen name="items/dispute" options={{ headerShown: true }} />
+        <Stack.Screen name="admin/index" options={{ headerShown: true }} />
       </Stack>
     </AuthProvider>
   );

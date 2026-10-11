@@ -6,7 +6,7 @@ This checklist defines the verification criteria across every security domain re
 To execute the automated database test suite:
 1. Open the Supabase SQL Editor.
 2. Paste and run the contents of [`supabase/tests/security_tests.sql`](file:///c:/Users/Hp/LOST&FOUNDAPP/supabase/tests/security_tests.sql).
-3. The script verifies all 15 core database rules (rate limiting, column protection, auto-rejection, report threshold auto-hide, normalized student uniqueness, points synchronization) in an isolated transaction that automatically rolls back.
+3. The script verifies all 18 core database rules (rate limiting, column protection, auto-rejection, report threshold auto-hide, normalized student uniqueness, points synchronization, dispute auto-freeze, leaderboard privacy, and admin point reversals) in an isolated transaction that automatically rolls back.
 
 ---
 
@@ -106,6 +106,7 @@ To execute the automated database test suite:
 | ADM-01 | Student attempts access to `admin_audit_log` | RLS returns 0 rows | RLS policy `audit_log_select_admin` |
 | ADM-02 | Admin attempts UPDATE or DELETE on `admin_audit_log` | Database rejects operation (immutable audit log) | RLS denies UPDATE/DELETE |
 | ADM-03 | Admin point reversal | Offsetting negative record created in `points_log` with audit log | Server-side reversal function |
+| ADM-04 | Admin lockout override | Claim lockout overridden in `claim_lockout_overrides` with audit log | Server-side override function `admin_override_lockout` |
 
 ---
 

@@ -331,6 +331,17 @@ export default function ProfileScreen() {
         </View>
       </View>
 
+      {/* Admin Quick Action */}
+      {profile.role === 'admin' && (
+        <TouchableOpacity
+          style={styles.adminButton}
+          onPress={() => router.push('/admin')}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.adminButtonText}>🛡️ Buksan ang Admin Dashboard</Text>
+        </TouchableOpacity>
+      )}
+
       {/* Action Buttons */}
       <TouchableOpacity
         style={styles.signOutButton}
@@ -787,6 +798,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalCloseButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  adminButton: {
+    height: 50,
+    borderRadius: 14,
+    backgroundColor: '#7B1123',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    shadowColor: '#7B1123',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  adminButtonText: {
     fontSize: 15,
     fontWeight: '700',
     color: '#FFFFFF',
