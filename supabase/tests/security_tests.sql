@@ -26,6 +26,7 @@ DECLARE
   v_check_hidden BOOLEAN;
   v_claim2_status claim_status;
   v_item_status item_status;
+  v_check_auto_confirm TIMESTAMPTZ;
   i INTEGER;
 BEGIN
   RAISE NOTICE '=====================================================';
@@ -297,6 +298,26 @@ BEGIN
   ELSE
     v_fail_count := v_fail_count + 1;
     RAISE WARNING 'TEST 15 FAILED: profiles.points did not sync! (expected 10, got %)', v_check_points;
+  END IF;
+
+  -- --------------------------------------------------------------------------
+  -- TEST 16: Dispute freezes auto-confirmation
+  -- --------------------------------------------------------------------------
+  v_test_count := v_test_count + 1;
+  UPDATE public.items 
+  SET status = 'released', auto_confirm_at = now() + interval '7 days' 
+  WHERE id = v_item_id;
+
+  INSERT INTO public.disputes (item_id, raised_by, reason, status)
+  VALUES (v_item_id, v_user2_id, 'Item not received test', 'open');
+
+  SELECT auto_confirm_at INTO v_check_auto_confirm FROM public.items WHERE id = v_item_id;
+  IF v_check_auto_confirm IS NULL THEN
+    v_pass_count := v_pass_count + 1;
+    RAISE NOTICE 'TEST 16 PASSED: on_dispute_created trigger successfully froze auto_confirm_at to NULL';
+  ELSE
+    v_fail_count := v_fail_count + 1;
+    RAISE WARNING 'TEST 16 FAILED: dispute creation did not freeze auto_confirm_at!';
   END IF;
 
   -- --------------------------------------------------------------------------

@@ -20,6 +20,7 @@ import { initiateLostItemContact, fetchClaimsForItem, type ClaimWithMeta } from 
 import { supabase } from '@/lib/supabase';
 import { LoadingView, ErrorView } from '@/components/StateViews';
 import type { ReportReason } from '@/types/database';
+import { markItemAsReturned, getOfficeStatus, type OfficeStatusResult } from '@/services/returns';
 
 export default function ItemDetailScreen() {
   const theme = useTheme();
@@ -29,6 +30,12 @@ export default function ItemDetailScreen() {
   const [existingClaims, setExistingClaims] = useState<ClaimWithMeta[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // User & Office Role States
+  const [currentUser, setCurrentUser] = useState<{ id: string; role: 'student' | 'admin' } | null>(null);
+  const [approvedClaimantId, setApprovedClaimantId] = useState<string | null>(null);
+  const [officeStatus, setOfficeStatus] = useState<OfficeStatusResult | null>(null);
+  const [isActionLoading, setIsActionLoading] = useState(false);
 
   // Contact Modal States (for Lost posts)
   const [showContactModal, setShowContactModal] = useState(false);
@@ -48,6 +55,30 @@ export default function ItemDetailScreen() {
       const res = await fetchItemDetail(id);
       setDetail(res);
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
+        setCurrentUser({ id: user.id, role: profile?.role || 'student' });
+      }
+
+      // Check if item has an approved claim
+      const { data: approvedClaim } = await supabase
+        .from('claims')
+        .select('claimant_id')
+        .eq('item_id', id)
+        .eq('status', 'approved')
+        .maybeSingle();
+      setApprovedClaimantId(approvedClaim?.claimant_id || null);
+
+      if (res.item.requires_office_pickup) {
+        const off = await getOfficeStatus();
+        setOfficeStatus(off);
+      }
+
       if (res.isOwner) {
         const claims = await fetchClaimsForItem(id);
         setExistingClaims(claims);
@@ -59,6 +90,32 @@ export default function ItemDetailScreen() {
       setIsLoading(false);
     }
   }, [id]);
+
+  const handleMarkAsReturned = async () => {
+    if (!id || !detail) return;
+    Alert.alert(
+      'Markahan bilang Naisauli / Released',
+      'Sigurado ka bang naibigay o naisauli na ang gamit? Aabisuhan ang may-ari upang kumpirmahin ang pagkakatanggap sa loob ng 7 araw.',
+      [
+        { text: 'Kanselahin', style: 'cancel' },
+        {
+          text: 'Oo, Nai-release Na',
+          onPress: async () => {
+            try {
+              setIsActionLoading(true);
+              await markItemAsReturned(id);
+              Alert.alert('Nai-release Na', 'Matagumpay na minarkahan ang item bilang released.');
+              loadDetail();
+            } catch (err: any) {
+              Alert.alert('May Error', err?.message || 'Nabigong markahan ang item.');
+            } finally {
+              setIsActionLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   useEffect(() => {
     loadDetail();
@@ -261,7 +318,135 @@ export default function ItemDetailScreen() {
 
         {/* Action Buttons */}
         <View style={styles.actionContainer}>
-          {isOwner ? (
+          {item.status === 'returned' ? (
+            <View style={[styles.statusCard, { backgroundColor: '#E8F5E9', borderColor: '#4CAF50' }]}>
+              <Text style={{ fontSize: 28, textAlign: 'center', marginBottom: 6 }}>🎉</Text>
+              <Text style={[styles.statusCardTitle, { color: '#2E7D32', textAlign: 'center' }]}>
+                Matagumpay na Naisauli (Returned)
+              </Text>
+              <Text style={[styles.statusCardBody, { color: '#1B5E20', textAlign: 'center' }]}>
+                Ang gamit na ito ay matagumpay nang naibalik sa verified na may-ari.
+              </Text>
+            </View>
+          ) : item.status === 'expired' ? (
+            <View style={[styles.statusCard, { backgroundColor: '#F5F5F5', borderColor: '#9E9E9E' }]}>
+              <Text style={{ fontSize: 24, textAlign: 'center', marginBottom: 4 }}>⌛</Text>
+              <Text style={[styles.statusCardTitle, { color: '#616161', textAlign: 'center' }]}>
+                Nag-expire na ang Post
+              </Text>
+              <Text style={[styles.statusCardBody, { color: '#757575', textAlign: 'center' }]}>
+                {item.type === 'found'
+                  ? 'Inilipat na sa pangangalaga ng Lost & Found Office.'
+                  : 'Inilagay na sa archive ang post na ito.'}
+              </Text>
+            </View>
+          ) : item.status === 'released' ? (
+            <View>
+              <View style={[styles.statusCard, { backgroundColor: '#FFF8E1', borderColor: '#FFA000', marginBottom: 12 }]}>
+                <Text style={[styles.statusCardTitle, { color: '#E65100' }]}>⏳ Nai-release Na ang Gamit</Text>
+                <Text style={[styles.statusCardBody, { color: '#BF360C' }]}>
+                  Naghihintay ng kumpirmasyon ng may-ari sa loob ng 7 araw bago ito awtomatikong mag-confirm.
+                </Text>
+              </View>
+
+              {currentUser?.id === approvedClaimantId || (isLost && isOwner) ? (
+                <View>
+                  <TouchableOpacity
+                    style={[styles.primaryActionBtn, { backgroundColor: '#E8B83A' }]}
+                    onPress={() => router.push({ pathname: '/items/confirm-return', params: { id: item.id } })}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={[styles.primaryActionBtnText, { color: '#3A0C14' }]}>
+                      ✨ Kumpirmahin ang Pagkakatanggap (+5 Pts)
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={{ marginTop: 12, alignItems: 'center', paddingVertical: 8 }}
+                    onPress={() => router.push({ pathname: '/items/dispute', params: { id: item.id } })}
+                  >
+                    <Text style={{ color: '#C62828', fontWeight: '700', fontSize: 14 }}>
+                      ⚠️ May problema ba? Maghain ng Dispute
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : isOwner ? (
+                <View style={[styles.ownerBadge, { backgroundColor: theme.accent + '25' }]}>
+                  <Text style={[styles.ownerBadgeText, { color: '#8F6600' }]}>
+                    ⭐ Nai-release mo na ang gamit. Naghihintay ng kumpirmasyon mula sa may-ari.
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          ) : item.status === 'verified' ? (
+            <View>
+              <View style={[styles.statusCard, { backgroundColor: '#E3F2FD', borderColor: '#2196F3', marginBottom: 12 }]}>
+                <Text style={[styles.statusCardTitle, { color: '#1565C0' }]}>✅ Na-verify na ang Claim</Text>
+                <Text style={[styles.statusCardBody, { color: '#0D47A1' }]}>
+                  Naaprubahan ang claim at handa na para sa pagsasauli ng gamit.
+                </Text>
+              </View>
+
+              {item.requires_office_pickup ? (
+                <View>
+                  <View
+                    style={[
+                      styles.officeStatusRow,
+                      {
+                        backgroundColor: officeStatus?.isOpen ? '#E8F5E9' : '#FFEBEE',
+                        borderColor: officeStatus?.isOpen ? '#4CAF50' : '#EF5350',
+                      },
+                    ]}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: officeStatus?.isOpen ? '#2E7D32' : '#C62828' }}>
+                      {officeStatus?.isOpen ? '🟢 BUKAS ANG OPISINA' : '🔴 SARADO ANG OPISINA'}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: '#555', marginTop: 2 }}>{officeStatus?.message}</Text>
+                  </View>
+
+                  {currentUser?.role === 'admin' ? (
+                    <TouchableOpacity
+                      style={[
+                        styles.primaryActionBtn,
+                        { backgroundColor: '#7B1123', marginTop: 12 },
+                        (!officeStatus?.isOpen || isActionLoading) && { opacity: 0.5 },
+                      ]}
+                      onPress={handleMarkAsReturned}
+                      disabled={!officeStatus?.isOpen || isActionLoading}
+                      activeOpacity={0.85}
+                    >
+                      {isActionLoading ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                      ) : (
+                        <Text style={styles.primaryActionBtnText}>🏢 I-release sa Opisina (Admin)</Text>
+                      )}
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={[styles.noteBox, { marginTop: 12, backgroundColor: '#FFF9E6', borderColor: '#E3B23C' }]}>
+                      <Text style={{ color: '#8F6600', fontSize: 13, textAlign: 'center', lineHeight: 18 }}>
+                        🔒 Ang administrator sa Lost & Found Office lamang ang maaaring mag-release ng item na ito habang bukas ang opisina.
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              ) : (
+                (isOwner && !isLost) || (isLost && currentUser?.id === approvedClaimantId) ? (
+                  <TouchableOpacity
+                    style={[styles.primaryActionBtn, { backgroundColor: '#7B1123' }, isActionLoading && { opacity: 0.6 }]}
+                    onPress={handleMarkAsReturned}
+                    disabled={isActionLoading}
+                    activeOpacity={0.85}
+                  >
+                    {isActionLoading ? (
+                      <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.primaryActionBtnText}>🤝 Markahan bilang Naisauli / Released</Text>
+                    )}
+                  </TouchableOpacity>
+                ) : null
+              )}
+            </View>
+          ) : isOwner ? (
             <View>
               <View style={[styles.ownerBadge, { backgroundColor: theme.accent + '25' }]}>
                 <Text style={[styles.ownerBadgeText, { color: '#8F6600' }]}>
@@ -724,5 +909,32 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     textAlignVertical: 'top',
     marginBottom: Spacing.md,
+  },
+  statusCard: {
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    marginBottom: Spacing.md,
+  },
+  statusCardTitle: {
+    fontSize: FontSize.md,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  statusCardBody: {
+    fontSize: FontSize.sm,
+    lineHeight: 20,
+  },
+  officeStatusRow: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  noteBox: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
   },
 });

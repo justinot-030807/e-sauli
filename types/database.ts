@@ -299,7 +299,7 @@ export type Database = {
       };
       user_badges: {
         Row: UserBadge;
-        Insert: UserBadge;
+        Insert: Omit<UserBadge, 'earned_at'> & { earned_at?: string };
         Update: Partial<UserBadge>;
         Relationships: [];
       };
@@ -397,6 +397,30 @@ export type Database = {
       delete_own_account: {
         Args: Record<string, never>;
         Returns: void;
+      };
+      confirm_item_return: {
+        Args: { p_item_id: string; p_thank_you_note?: string | null };
+        Returns: {
+          success: boolean;
+          base_points: number;
+          speedy_bonus: number;
+          thank_you_bonus: number;
+          owner_bonus: number;
+          total_points_finder: number;
+          is_pair_limit_exceeded: boolean;
+        };
+      };
+      auto_confirm_released_items: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
+      expire_stale_items: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
+      remind_unconfirmed_claims: {
+        Args: Record<string, never>;
+        Returns: number;
       };
     };
   };
