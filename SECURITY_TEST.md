@@ -2,6 +2,12 @@
 
 This checklist defines the verification criteria across every security domain required by the MarSU Lost & Found specification.
 
+### Running Automated Security Tests
+To execute the automated database test suite:
+1. Open the Supabase SQL Editor.
+2. Paste and run the contents of [`supabase/tests/security_tests.sql`](file:///c:/Users/Hp/LOST&FOUNDAPP/supabase/tests/security_tests.sql).
+3. The script verifies all 15 core database rules (rate limiting, column protection, auto-rejection, report threshold auto-hide, normalized student uniqueness, points synchronization) in an isolated transaction that automatically rolls back.
+
 ---
 
 ## 1. Authentication (`AUTH`)

@@ -188,6 +188,15 @@ export type JobLog = {
   error_message: string | null;
 };
 
+export type ClaimLockoutOverride = {
+  id: string;
+  item_id: string;
+  user_id: string;
+  admin_id: string;
+  reason: string;
+  created_at: string;
+};
+
 // Supabase client type helper
 export type Database = {
   public: {
@@ -347,6 +356,15 @@ export type Database = {
           started_at?: string;
         };
         Update: Partial<JobLog>;
+        Relationships: [];
+      };
+      claim_lockout_overrides: {
+        Row: ClaimLockoutOverride;
+        Insert: Omit<ClaimLockoutOverride, 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<ClaimLockoutOverride>;
         Relationships: [];
       };
     };

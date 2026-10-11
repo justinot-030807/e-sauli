@@ -226,6 +226,17 @@ CREATE TABLE public.job_logs (
   error_message TEXT
 );
 
+-- 19. claim_lockout_overrides
+CREATE TABLE public.claim_lockout_overrides (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  item_id UUID NOT NULL REFERENCES public.items(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  admin_id UUID NOT NULL REFERENCES public.profiles(id),
+  reason TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (item_id, user_id)
+);
+
 --- INDEXES ---
 CREATE INDEX idx_items_feed ON public.items (status, type, deleted_at, is_hidden);
 CREATE INDEX idx_items_user_id ON public.items (user_id);
@@ -365,6 +376,155 @@ CREATE TRIGGER sync_points_trigger
   AFTER INSERT ON public.points_log
   FOR EACH ROW EXECUTE FUNCTION public.sync_profile_points();
 
+-- TRIGGER: Enforce daily post limit (max 10 posts per day in Asia/Manila)
+CREATE OR REPLACE FUNCTION public.enforce_daily_post_limit()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+DECLARE
+  max_posts INTEGER;
+  today_count INTEGER;
+BEGIN
+  SELECT COALESCE(value::INTEGER, 10) INTO max_posts
+  FROM public.system_settings WHERE key = 'daily_post_limit';
+
+  SELECT COUNT(*) INTO today_count
+  FROM public.items
+  WHERE user_id = NEW.user_id
+    AND created_at AT TIME ZONE 'Asia/Manila' >= date_trunc('day', now() AT TIME ZONE 'Asia/Manila');
+
+  IF today_count >= max_posts THEN
+    RAISE EXCEPTION 'Daily post limit exceeded. You may only post % items per day.', max_posts;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER enforce_daily_post_limit_trigger
+  BEFORE INSERT ON public.items
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_daily_post_limit();
+
+-- TRIGGER: Enforce daily claim limit (max 5 claims per day in Asia/Manila)
+CREATE OR REPLACE FUNCTION public.enforce_daily_claim_limit()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+DECLARE
+  max_claims INTEGER;
+  today_count INTEGER;
+BEGIN
+  SELECT COALESCE(value::INTEGER, 5) INTO max_claims
+  FROM public.system_settings WHERE key = 'daily_claim_limit';
+
+  SELECT COUNT(*) INTO today_count
+  FROM public.claims
+  WHERE claimant_id = NEW.claimant_id
+    AND created_at AT TIME ZONE 'Asia/Manila' >= date_trunc('day', now() AT TIME ZONE 'Asia/Manila');
+
+  IF today_count >= max_claims THEN
+    RAISE EXCEPTION 'Daily claim limit exceeded. You may only submit % claims per day.', max_claims;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER enforce_daily_claim_limit_trigger
+  BEFORE INSERT ON public.claims
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_daily_claim_limit();
+
+-- TRIGGER: Auto-hide item when valid report threshold is met (e.g. 3 reports)
+CREATE OR REPLACE FUNCTION public.handle_report_threshold()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  threshold INTEGER;
+  report_count INTEGER;
+BEGIN
+  IF NEW.target_type = 'item' THEN
+    SELECT COALESCE(value::INTEGER, 3) INTO threshold
+    FROM public.system_settings WHERE key = 'report_threshold';
+
+    SELECT COUNT(DISTINCT reporter_id) INTO report_count
+    FROM public.reports
+    WHERE target_type = 'item' AND target_id = NEW.target_id;
+
+    IF report_count >= threshold THEN
+      UPDATE public.items
+      SET is_hidden = true
+      WHERE id = NEW.target_id;
+
+      -- Create notification for admins
+      INSERT INTO public.admin_audit_log (admin_id, action, target_type, target_id, details)
+      SELECT p.id, 'auto_hide_reported_item', 'item', NEW.target_id,
+             jsonb_build_object('reason', 'Exceeded report threshold', 'report_count', report_count)
+      FROM public.profiles p
+      WHERE p.role = 'admin'
+      LIMIT 1;
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER handle_report_threshold_trigger
+  AFTER INSERT ON public.reports
+  FOR EACH ROW EXECUTE FUNCTION public.handle_report_threshold();
+
+-- TRIGGER: On claim approval, automatically reject other pending claims and update item status to verified
+CREATE OR REPLACE FUNCTION public.handle_claim_approval()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  IF NEW.status = 'approved' AND (OLD.status IS DISTINCT FROM 'approved') THEN
+    -- Update item status to verified
+    UPDATE public.items
+    SET status = 'verified'
+    WHERE id = NEW.item_id;
+
+    -- Automatically reject all other pending claims for this item
+    UPDATE public.claims
+    SET status = 'auto_rejected'
+    WHERE item_id = NEW.item_id
+      AND id != NEW.id
+      AND status = 'pending';
+
+    -- Notify the approved claimant
+    INSERT INTO public.notifications (user_id, type, body, item_id)
+    VALUES (
+      NEW.claimant_id,
+      'claim_approved',
+      'Your claim has been approved! Proceed with the handover process.',
+      NEW.item_id
+    );
+
+    -- Notify auto-rejected claimants
+    INSERT INTO public.notifications (user_id, type, body, item_id)
+    SELECT claimant_id, 'claim_rejected',
+           'Another claim has been verified for this item. Your claim was closed.',
+           NEW.item_id
+    FROM public.claims
+    WHERE item_id = NEW.item_id AND id != NEW.id AND status = 'auto_rejected';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER handle_claim_approval_trigger
+  AFTER UPDATE OF status ON public.claims
+  FOR EACH ROW EXECUTE FUNCTION public.handle_claim_approval();
+
 --- RLS POLICIES ---
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -385,6 +545,7 @@ ALTER TABLE public.office_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.job_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.claim_lockout_overrides ENABLE ROW LEVEL SECURITY;
 
 -- PROFILES POLICIES
 CREATE POLICY profiles_select_own ON public.profiles FOR SELECT USING (auth.uid() = id);
@@ -450,11 +611,20 @@ CREATE POLICY claims_update_admin ON public.claims FOR UPDATE TO authenticated U
 );
 
 -- CLAIM_ATTEMPTS POLICIES
+-- Clients cannot directly INSERT match results; inserts are performed solely by trusted SECURITY DEFINER functions
 CREATE POLICY claim_attempts_select_own ON public.claim_attempts FOR SELECT TO authenticated USING (
   user_id = auth.uid()
   OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
 );
-CREATE POLICY claim_attempts_insert ON public.claim_attempts FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
+
+-- CLAIM_LOCKOUT_OVERRIDES POLICIES
+CREATE POLICY claim_lockout_overrides_select ON public.claim_lockout_overrides FOR SELECT TO authenticated USING (
+  user_id = auth.uid()
+  OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
+CREATE POLICY claim_lockout_overrides_admin_insert ON public.claim_lockout_overrides FOR INSERT TO authenticated WITH CHECK (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
 
 -- SECRET_QUESTIONS POLICIES
 CREATE POLICY secret_questions_select ON public.secret_questions FOR SELECT TO authenticated USING (
@@ -581,7 +751,7 @@ CREATE POLICY job_logs_select_admin ON public.job_logs FOR SELECT TO authenticat
 
 --- HELPER FUNCTIONS ---
 
--- Function to get public profile (hides private fields for non-owners)
+-- Function to get public profile (hides private fields for non-owners, checks caller state)
 CREATE OR REPLACE FUNCTION public.get_public_profile(target_user_id UUID)
 RETURNS TABLE (
   id UUID,
@@ -591,14 +761,25 @@ RETURNS TABLE (
   returns_count INTEGER,
   created_at TIMESTAMPTZ
 )
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
 STABLE
 AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_suspended = true) THEN
+    RAISE EXCEPTION 'Account is suspended';
+  END IF;
+
+  RETURN QUERY
   SELECT p.id, p.nickname, p.college, p.points, p.returns_count, p.created_at
   FROM public.profiles p
   WHERE p.id = target_user_id AND p.deleted_at IS NULL;
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION public.get_public_profile FROM public, anon;
@@ -610,18 +791,166 @@ RETURNS TABLE (
   id UUID,
   question TEXT
 )
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
 STABLE
 AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND (is_suspended = true OR approval_status != 'approved')
+  ) THEN
+    RAISE EXCEPTION 'Account is unapproved or suspended';
+  END IF;
+
+  RETURN QUERY
   SELECT sq.id, sq.question
   FROM public.secret_questions sq
   WHERE sq.item_id = p_item_id;
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION public.get_item_questions FROM public, anon;
 GRANT EXECUTE ON FUNCTION public.get_item_questions TO authenticated;
+
+-- Function to verify secret question answer or cash amount hash with 3-attempt lockout
+CREATE OR REPLACE FUNCTION public.verify_claim_secret(
+  p_item_id UUID,
+  p_answer_hash TEXT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  caller_id UUID;
+  caller_status public.approval_status;
+  caller_suspended BOOLEAN;
+  item_poster_id UUID;
+  failed_attempts INTEGER;
+  is_match BOOLEAN := false;
+  correct_hash TEXT;
+  has_override BOOLEAN := false;
+BEGIN
+  caller_id := auth.uid();
+  IF caller_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  SELECT approval_status, is_suspended INTO caller_status, caller_suspended
+  FROM public.profiles WHERE id = caller_id AND deleted_at IS NULL;
+
+  IF caller_status != 'approved' THEN
+    RAISE EXCEPTION 'Only approved students may verify claims';
+  END IF;
+
+  IF caller_suspended = true THEN
+    RAISE EXCEPTION 'Account is suspended';
+  END IF;
+
+  -- Block self-claim verification
+  SELECT user_id INTO item_poster_id
+  FROM public.items WHERE id = p_item_id;
+
+  IF item_poster_id = caller_id THEN
+    RAISE EXCEPTION 'You cannot verify or claim your own post';
+  END IF;
+
+  -- Check if admin override exists
+  SELECT EXISTS(
+    SELECT 1 FROM public.claim_lockout_overrides
+    WHERE item_id = p_item_id AND user_id = caller_id
+  ) INTO has_override;
+
+  -- Check failed attempts count
+  SELECT COUNT(*) INTO failed_attempts
+  FROM public.claim_attempts
+  WHERE item_id = p_item_id AND user_id = caller_id AND matched = false;
+
+  IF failed_attempts >= 3 AND NOT has_override THEN
+    RAISE EXCEPTION 'Maximum verification attempts (3) exceeded for this item. Verification is locked. Please contact the administrator.';
+  END IF;
+
+  -- Get correct hash from secret_questions or item_private
+  SELECT answer_hmac INTO correct_hash
+  FROM public.secret_questions WHERE item_id = p_item_id
+  LIMIT 1;
+
+  IF correct_hash IS NULL THEN
+    SELECT amount_hmac INTO correct_hash
+    FROM public.item_private WHERE item_id = p_item_id;
+  END IF;
+
+  IF correct_hash IS NOT NULL AND correct_hash = p_answer_hash THEN
+    is_match := true;
+  END IF;
+
+  -- Log attempt securely (cannot be written directly by client)
+  INSERT INTO public.claim_attempts (item_id, user_id, matched)
+  VALUES (p_item_id, caller_id, is_match);
+
+  -- Notify user if they reached the 3-attempt lockout threshold
+  IF NOT is_match AND (failed_attempts + 1) >= 3 AND NOT has_override THEN
+    INSERT INTO public.notifications (user_id, type, body, item_id)
+    VALUES (
+      caller_id,
+      'claim_lockout',
+      'You have reached 3 failed verification attempts for an item. Automated verification is locked. Contact the Lost & Found office for assistance.',
+      p_item_id
+    );
+  END IF;
+
+  RETURN is_match;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.verify_claim_secret FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.verify_claim_secret TO authenticated;
+
+-- Function to safely delete/anonymize user's own account and personal data
+CREATE OR REPLACE FUNCTION public.delete_own_account()
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  caller_id UUID;
+BEGIN
+  caller_id := auth.uid();
+  IF caller_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  -- Anonymize profile personal information while preserving audit & transaction history
+  UPDATE public.profiles
+  SET
+    full_name = 'Deleted User',
+    student_id = 'DELETED_' || caller_id::text,
+    nickname = 'Deleted',
+    college = 'None',
+    deleted_at = now()
+  WHERE id = caller_id;
+
+  -- Soft delete active items posted by this user
+  UPDATE public.items
+  SET deleted_at = now()
+  WHERE user_id = caller_id AND status = 'open';
+
+  -- Log action in audit log
+  INSERT INTO public.admin_audit_log (admin_id, action, target_type, target_id, details)
+  VALUES (caller_id, 'user_account_deleted', 'user', caller_id, jsonb_build_object('self_deleted', true));
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.delete_own_account FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.delete_own_account TO authenticated;
 
 --- SEED DATA ---
 -- Seed badges
