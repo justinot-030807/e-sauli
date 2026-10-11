@@ -230,7 +230,9 @@ export type Database = {
       };
       item_private: {
         Row: ItemPrivate;
-        Insert: ItemPrivate;
+        Insert: Omit<ItemPrivate, 'updated_at'> & {
+          updated_at?: string;
+        };
         Update: Partial<ItemPrivate>;
         Relationships: [];
       };
@@ -369,6 +371,33 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      get_public_profile: {
+        Args: { target_user_id: string };
+        Returns: {
+          id: string;
+          nickname: string;
+          college: string;
+          points: number;
+          returns_count: number;
+          created_at: string;
+        }[];
+      };
+      get_item_questions: {
+        Args: { p_item_id: string };
+        Returns: {
+          id: string;
+          question: string;
+        }[];
+      };
+      verify_claim_secret: {
+        Args: { p_item_id: string; p_answer_hash: string };
+        Returns: boolean;
+      };
+      delete_own_account: {
+        Args: Record<string, never>;
+        Returns: void;
+      };
+    };
   };
 }

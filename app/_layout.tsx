@@ -14,6 +14,8 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="privacy-consent" />
         <Stack.Screen name="pending-approval" />
+        <Stack.Screen name="items/[id]" options={{ headerShown: true }} />
+        <Stack.Screen name="items/post" options={{ headerShown: true }} />
       </Stack>
     </AuthProvider>
   );
