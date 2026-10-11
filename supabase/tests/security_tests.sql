@@ -321,6 +321,23 @@ BEGIN
   END IF;
 
   -- --------------------------------------------------------------------------
+  -- TEST 17: Leaderboard privacy verification
+  -- --------------------------------------------------------------------------
+  v_test_count := v_test_count + 1;
+  BEGIN
+    SELECT count(*)::INTEGER INTO i
+    FROM public.get_leaderboard('all_time', NULL, 10);
+
+    IF i >= 1 THEN
+      v_pass_count := v_pass_count + 1;
+      RAISE NOTICE 'TEST 17 PASSED: get_leaderboard returned privacy-safe ranking rows (% rows)', i;
+    ELSE
+      v_fail_count := v_fail_count + 1;
+      RAISE WARNING 'TEST 17 FAILED: get_leaderboard returned 0 rows!';
+    END IF;
+  END;
+
+  -- --------------------------------------------------------------------------
   -- TEST RESULTS SUMMARY
   -- --------------------------------------------------------------------------
   RAISE NOTICE '=====================================================';

@@ -39,6 +39,7 @@ To execute the automated database test suite:
 | PROF-01 | User queries another user's `full_name` or `student_id` | Private fields are withheld; only public fields visible via `get_public_profile()` | Database function `get_public_profile()` |
 | PROF-02 | User attempts to UPDATE another user's profile | Database rejects UPDATE | RLS policy `profiles_update_own` (`auth.uid() = id`) |
 | PROF-03 | Duplicate `student_id` registration (different casing/spacing) | Database rejects insert due to normalized unique index | Unique index `idx_profiles_student_id` (`lower(trim(student_id))`) |
+| PROF-04 | User inspects leaderboard query results | Only nickname, college, points, and returns_count are visible; full name, student ID, and email are never exposed | Database function `get_leaderboard()` |
 
 ---
 

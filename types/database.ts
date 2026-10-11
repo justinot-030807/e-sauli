@@ -422,6 +422,33 @@ export type Database = {
         Args: Record<string, never>;
         Returns: number;
       };
+      get_leaderboard: {
+        Args: {
+          p_timeframe?: string;
+          p_college?: string | null;
+          p_limit?: number;
+        };
+        Returns: {
+          user_id: string;
+          rank: number;
+          nickname: string;
+          college: string;
+          points: number;
+          returns_count: number;
+        }[];
+      };
+      get_user_rank: {
+        Args: {
+          p_user_id: string;
+          p_timeframe?: string;
+          p_college?: string | null;
+        };
+        Returns: {
+          rank: number;
+          points: number;
+          points_to_top10: number;
+        }[];
+      };
     };
   };
 }
