@@ -1,0 +1,21 @@
+{
+  "name": "esauli-remotion-promo",
+  "version": "1.0.0",
+  "description": "High-impact programmatic commercial video for E-Sauli Lost & Found built with Remotion",
+  "scripts": {
+    "start": "remotion preview",
+    "build": "remotion render ESaultCommercial out/esauli-ad-1080p.mp4",
+    "build:vertical": "remotion render ESaultCommercialVertical out/esauli-ad-vertical.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "@remotion/player": "^4.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "remotion": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "typescript": "^5.0.0"
+  }
+}
