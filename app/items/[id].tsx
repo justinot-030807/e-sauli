@@ -268,7 +268,7 @@ export default function ItemDetailScreen() {
             <Text style={styles.officeCardTitle}>🏢 Sa Opisina Lamang Kukunin</Text>
             <Text style={styles.officeCardBody}>
               Dahil ito ay sensitibong gamit ({item.category}), kailangan itong kunin nang
-              personal sa MarSU Lost & Found Office upang maiwasan ang maling pag-claim.
+              personal sa Campus Lost & Found Office upang maiwasan ang maling pag-claim.
             </Text>
             {officeSettings && (
               <View style={styles.officeHoursBox}>

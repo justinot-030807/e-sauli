@@ -80,7 +80,7 @@ export default function DisputeScreen() {
               await raiseDispute(id, fullReason);
               Alert.alert(
                 'Dispute Naitala',
-                'Matagumpay na naitala ang iyong dispute. Aabisuhan ang administrasyon ng MarSU Lost & Found upang repasuhin ang insidente.',
+                'Matagumpay na naitala ang iyong dispute. Aabisuhan ang administrasyon ng Lost & Found upang repasuhin ang insidente.',
                 [
                   {
                     text: 'OK',

@@ -20,7 +20,7 @@ const PRIVACY_SECTIONS = [
   },
   {
     title: '🎯 Why We Collect It',
-    body: 'Your information helps us verify your identity as a MarSU student, connect lost items with their owners, and maintain a safe community. Your student ID and full name are used only for verification and are never shown publicly.',
+    body: 'Your information helps us verify your identity as an enrolled student, connect lost items with their owners, and maintain a safe community. Your student ID and full name are used only for verification and are never shown publicly.',
   },
   {
     title: '🔒 How We Protect It',

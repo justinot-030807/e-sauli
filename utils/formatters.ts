@@ -1,4 +1,4 @@
-// Utility helpers for MarSU Lost & Found (E-Sauli)
+// Utility helpers for E-Sauli (Campus Lost & Found)
 // Date/time formatting in Asia/Manila, amount normalization, and privacy safe truncation.
 
 export function formatDateManila(dateStr: string | null | undefined): string {

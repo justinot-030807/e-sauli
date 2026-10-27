@@ -209,7 +209,7 @@ export default function ConfirmReturnScreen() {
 
             <Text style={styles.modalTitle}>Matagumpay na Naisauli!</Text>
             <Text style={styles.modalSubtitle}>
-              Salamat sa pagiging tapat na miyembro ng komunidad ng MarSU.
+              Salamat sa pagiging tapat na miyembro ng ating komunidad.
             </Text>
 
             {/* Points Breakdown */}

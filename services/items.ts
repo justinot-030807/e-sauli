@@ -192,7 +192,7 @@ export async function fetchItemDetail(itemId: string): Promise<ItemDetailRespons
 
   // Fetch poster's public nickname and college
   let posterNickname = 'Student';
-  let posterCollege = 'MarSU';
+  let posterCollege = 'Campus';
 
   try {
     const { data: profileData } = await supabase.rpc('get_public_profile', {

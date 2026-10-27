@@ -1,22 +1,22 @@
 {
   "expo": {
-    "name": "MarSU Lost & Found",
-    "slug": "marsu-lost-and-found",
+    "name": "E-Sauli Lost & Found",
+    "slug": "esauli-lost-and-found",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "scheme": "marsu-lf",
+    "scheme": "esauli-lf",
     "plugins": [
       "expo-router",
       "expo-secure-store"
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "ph.edu.marsu.lostandfound"
+      "bundleIdentifier": "com.esauli.lostandfound"
     },
     "android": {
-      "package": "ph.edu.marsu.lostandfound",
+      "package": "com.esauli.lostandfound",
       "adaptiveIcon": {
         "backgroundColor": "#7a1f2b",
         "foregroundImage": "./assets/android-icon-foreground.png",

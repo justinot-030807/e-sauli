@@ -133,7 +133,7 @@ export default function AdminDashboardScreen() {
         <Text style={{ fontSize: 50, marginBottom: 12 }}>🔒</Text>
         <Text style={styles.unauthorizedTitle}>Walang Pahintulot</Text>
         <Text style={styles.unauthorizedText}>
-          Ang screen na ito ay para lamang sa mga administrator ng MarSU Lost & Found Office.
+          Ang screen na ito ay para lamang sa mga administrator ng Lost & Found Office.
         </Text>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>Bumalik</Text>
@@ -312,7 +312,7 @@ export default function AdminDashboardScreen() {
       <View style={styles.headerBar}>
         <View>
           <Text style={styles.adminTitle}>E-Sauli Admin</Text>
-          <Text style={styles.adminSubtitle}>MarSU Lost & Found Management Panel</Text>
+          <Text style={styles.adminSubtitle}>Campus Lost & Found Management Panel</Text>
         </View>
         <View style={styles.adminBadge}>
           <Text style={styles.adminBadgeText}>ADMIN</Text>

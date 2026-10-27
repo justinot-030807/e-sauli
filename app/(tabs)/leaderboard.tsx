@@ -85,7 +85,7 @@ export default function LeaderboardScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Aura Farming</Text>
-        <Text style={styles.headerSubtitle}>Mga nagbabalik ng gamit sa MarSU</Text>
+        <Text style={styles.headerSubtitle}>Mga nagbabalik ng gamit sa campus</Text>
       </View>
 
       {/* Timeframe Tabs */}

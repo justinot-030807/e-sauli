@@ -273,7 +273,7 @@ export default function PostItemScreen() {
               </Text>
               <Text style={styles.sensitiveNoticeBody}>
                 Bawal mag-upload ng larawan para sa kategoryang ito. Ang gamit ay dadalhin sa
-                MarSU Lost & Found Office upang maprotektahan ang may-ari.
+                Campus Lost & Found Office upang maprotektahan ang may-ari.
               </Text>
             </View>
           )}
@@ -442,7 +442,7 @@ export default function PostItemScreen() {
                   <Text style={[styles.label, { color: theme.text, marginTop: Spacing.sm }]}>Tamang Sagot</Text>
                   <TextInput
                     style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.border, color: theme.text }]}
-                    placeholder="Hal: MarSU 2026"
+                    placeholder="Hal: Campus 2026"
                     placeholderTextColor={theme.placeholder}
                     value={secretAnswer}
                     onChangeText={setSecretAnswer}

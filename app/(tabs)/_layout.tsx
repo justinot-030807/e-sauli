@@ -23,7 +23,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Home',
-          headerTitle: 'MarSU Lost & Found',
+          headerTitle: 'E-Sauli Lost & Found',
           tabBarIcon: ({ color }) => <Text style={[styles.icon, { color }]}>🏠</Text>,
         }}
       />

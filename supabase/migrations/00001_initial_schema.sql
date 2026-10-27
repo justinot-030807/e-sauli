@@ -179,7 +179,7 @@ CREATE UNIQUE INDEX idx_reports_reporter_target ON public.reports (reporter_id, 
 -- 15. office_settings
 CREATE TABLE public.office_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  office_name TEXT NOT NULL DEFAULT 'MarSU Lost & Found Office',
+  office_name TEXT NOT NULL DEFAULT 'Campus Lost & Found Office',
   open_days TEXT[] NOT NULL DEFAULT ARRAY['Monday','Tuesday','Wednesday','Thursday','Friday'],
   open_time TIME NOT NULL DEFAULT '08:00',
   close_time TIME NOT NULL DEFAULT '17:00',
@@ -202,8 +202,8 @@ INSERT INTO public.system_settings (key, value, description) VALUES
 ('monthly_return_pair_limit', '2', 'Max point-earning returns per finder-owner pair per month'),
 ('match_score_threshold', '70', 'Minimum score for item matching notifications'),
 ('max_found_post_rewards_per_day', '3', 'Maximum point-earning found posts per day'),
-('require_school_email', 'true', 'Require school email domain for registration'),
-('school_email_domain', 'marsu.edu.ph', 'Allowed school email domain');
+('require_school_email', 'false', 'Require school email domain for registration (set false to allow any email for testing)'),
+('school_email_domain', 'school.edu.ph', 'Allowed school email domain');
 
 -- 17. admin_audit_log
 CREATE TABLE public.admin_audit_log (
@@ -279,6 +279,8 @@ BEGIN
     CASE
       WHEN (SELECT value FROM public.system_settings WHERE key = 'require_school_email') = 'true'
         AND NEW.email LIKE '%@' || (SELECT value FROM public.system_settings WHERE key = 'school_email_domain')
+      THEN 'approved'
+      WHEN (SELECT value FROM public.system_settings WHERE key = 'require_school_email') = 'false'
       THEN 'approved'
       ELSE 'pending'
     END
@@ -964,7 +966,7 @@ INSERT INTO public.badges (code, name, description, icon, requirement) VALUES
 
 -- Seed office settings
 INSERT INTO public.office_settings (office_name, open_days, open_time, close_time, location_note)
-VALUES ('MarSU Lost & Found Office', ARRAY['Monday','Tuesday','Wednesday','Thursday','Friday'], '08:00', '17:00', 'Admin Building, Ground Floor');
+VALUES ('Campus Lost & Found Office', ARRAY['Monday','Tuesday','Wednesday','Thursday','Friday'], '08:00', '17:00', 'Admin Building, Ground Floor');
 
 --- ENABLE REALTIME ---
 ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;

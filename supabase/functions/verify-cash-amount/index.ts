@@ -46,7 +46,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const hmacSecret = Deno.env.get("ITEM_HMAC_SECRET") ?? "marsu_default_secret_hmac_salt";
+    const hmacSecret = Deno.env.get("ITEM_HMAC_SECRET") ?? "campus_default_secret_hmac_salt";
 
     if (!supabaseUrl || !serviceRoleKey) {
       return new Response(

@@ -84,7 +84,7 @@ export default function RegisterScreen() {
         <View style={styles.header}>
           <Text style={[styles.title, { color: theme.primary }]}>Create Account</Text>
           <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-            Join the MarSU Lost & Found community
+            Sumali sa E-Sauli Lost & Found community
           </Text>
         </View>
 
@@ -95,10 +95,10 @@ export default function RegisterScreen() {
             </View>
           )}
 
-          <Text style={[styles.label, { color: theme.text }]}>School Email *</Text>
+          <Text style={[styles.label, { color: theme.text }]}>Email *</Text>
           <TextInput
             style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.border, color: theme.text }]}
-            placeholder="your.email@marsu.edu.ph"
+            placeholder="your.email@school.edu.ph"
             placeholderTextColor={theme.placeholder}
             value={form.email}
             onChangeText={(v) => updateForm('email', v)}

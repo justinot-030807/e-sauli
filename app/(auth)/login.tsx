@@ -55,10 +55,10 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Text style={[styles.appName, { color: theme.primary }]}>MarSU</Text>
-          <Text style={[styles.appSubtitle, { color: theme.text }]}>Lost & Found</Text>
+          <Text style={[styles.appName, { color: theme.primary }]}>E-Sauli</Text>
+          <Text style={[styles.appSubtitle, { color: theme.text }]}>Campus Lost & Found</Text>
           <Text style={[styles.tagline, { color: theme.textSecondary }]}>
-            Helping Marinduquenos reconnect with their belongings
+            Tulungang maibalik ang mga nawawalang gamit sa campus
           </Text>
         </View>
 
@@ -79,7 +79,7 @@ export default function LoginScreen() {
                 color: theme.text,
               },
             ]}
-            placeholder="your.email@marsu.edu.ph"
+            placeholder="your.email@school.edu.ph"
             placeholderTextColor={theme.placeholder}
             value={email}
             onChangeText={setEmail}

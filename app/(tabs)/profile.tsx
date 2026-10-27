@@ -166,7 +166,7 @@ export default function ProfileScreen() {
 
         <View style={styles.badgeRow}>
           <View style={styles.verifiedChip}>
-            <Text style={styles.verifiedText}>✓ Verified MarSU student</Text>
+            <Text style={styles.verifiedText}>✓ Verified Student</Text>
           </View>
           <View style={[styles.roleChip, profile.role === 'admin' && styles.adminChip]}>
             <Text style={[styles.roleText, profile.role === 'admin' && styles.adminText]}>

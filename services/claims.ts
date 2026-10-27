@@ -184,7 +184,7 @@ export async function fetchClaimsForItem(itemId: string): Promise<ClaimWithMeta[
   const results: ClaimWithMeta[] = await Promise.all(
     claims.map(async (claim) => {
       let claimantNickname = 'Estudyante';
-      let claimantCollege = 'MarSU';
+      let claimantCollege = 'Campus';
 
       try {
         const { data: profileData } = await supabase.rpc('get_public_profile', {
@@ -272,7 +272,7 @@ export async function fetchClaimDetail(claimId: string): Promise<ClaimWithMeta &
   }
 
   let claimantNickname = 'Estudyante';
-  let claimantCollege = 'MarSU';
+  let claimantCollege = 'Campus';
 
   try {
     const { data: profileData } = await supabase.rpc('get_public_profile', {
