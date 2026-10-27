@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="tl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E-Sauli - Official Motion Graphic Video Advertisement</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #7a1f2b;
+      --primary-light: #962a39;
+      --accent: #e3b23c;
+      --accent-glow: rgba(227, 178, 60, 0.45);
+      --bg: #0d0708;
+      --card-bg: rgba(26, 13, 15, 0.85);
+      --border: rgba(227, 178, 60, 0.25);
+      --text: #ffffff;
+      --text-muted: #d0c0c2;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow-x: hidden;
+      padding-bottom: 60px;
+    }
+
+    /* Ambient Animated Glows */
+    .ambient-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .glow-sphere-1 {
+      position: absolute;
+      top: -150px;
+      left: 10%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(122, 31, 43, 0.45) 0%, transparent 70%);
+      filter: blur(80px);
+      animation: floatGlow 12s ease-in-out infinite alternate;
+    }
+
+    .glow-sphere-2 {
+      position: absolute;
+      bottom: -150px;
+      right: 15%;
+      width: 550px;
+      height: 550px;
+      background: radial-gradient(circle, rgba(227, 178, 60, 0.3) 0%, transparent 70%);
+      filter: blur(90px);
+      animation: floatGlow 10s ease-in-out infinite alternate-reverse;
+    }
+
+    @keyframes floatGlow {
+      0% { transform: translateY(0) scale(1); }
+      100% { transform: translateY(80px) scale(1.15); }
+    }
+
+    /* Top Control Bar */
+    .top-bar {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 1200px;
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(13, 7, 8, 0.7);
+      backdrop-filter: blur(12px);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, var(--primary), #a82e3e);
+      color: #fff;
+      font-weight: 800;
+      font-size: 14px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--accent);
+      box-shadow: 0 0 15px var(--accent-glow);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-title span {
+      color: var(--accent);
+    }
+
+    .control-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      border: none;
+      outline: none;
+    }
+
+    .btn:active {
+      transform: scale(0.96);
+    }
+
+    .btn-record {
+      background: linear-gradient(135deg, #e53935, #c62828);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(229, 57, 53, 0.4);
+    }
+
+    .btn-record:hover {
+      box-shadow: 0 6px 22px rgba(229, 57, 53, 0.6);
+      transform: translateY(-2px);
+    }
+
+    .btn-record.recording {
+      animation: pulseRecord 1.5s infinite;
+      background: #b71c1c;
+    }
+
+    @keyframes pulseRecord {
+      0% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.7); }
+      70% { box-shadow: 0 0 0 14px rgba(229, 57, 53, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0); }
+    }
+
+    .btn-play {
+      background: linear-gradient(135deg, var(--accent), #c99824);
+      color: #1a0d0f;
+      box-shadow: 0 4px 15px var(--accent-glow);
+    }
+
+    .btn-play:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px var(--accent-glow);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Video Frame Canvas Area */
+    .video-viewport {
+      position: relative;
+      z-index: 5;
+      margin-top: 24px;
+      width: 100%;
+      max-width: 1080px;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 40px rgba(122, 31, 43, 0.35);
+      border: 1px solid rgba(227, 178, 60, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .video-viewport.portrait {
+      max-width: 440px;
+      aspect-ratio: 9 / 16;
+    }
+
+    /* Main Video Stage */
+    .stage {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 40%, #2a0b12 0%, #0d0407 100%);
+      overflow: hidden;
+    }
+
+    /* Grid & particle ambient effects */
+    .stage-grid {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(227, 178, 60, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(227, 178, 60, 0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.7;
+    }
+
+    /* Dynamic Scene Overlays */
+    .scene-content {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 40px 60px;
+      opacity: 0;
+      transform: translateY(20px) scale(0.98);
+      transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+
+    .scene-content.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    /* Kinetic Typography Text Column */
+    .text-column {
+      flex: 1;
+      max-width: 520px;
+      z-index: 10;
+    }
+
+    .scene-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      background: rgba(227, 178, 60, 0.12);
+      border: 1px solid rgba(227, 178, 60, 0.3);
+      padding: 5px 12px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .scene-title {
+      font-size: 38px;
+      font-weight: 800;
+      line-height: 1.15;
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      margin-bottom: 14px;
+      letter-spacing: -0.5px;
+    }
+
+    .scene-title .highlight {
+      background: linear-gradient(135deg, #ffc84a, #ff9800);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .scene-desc {
+      font-size: 17px;
+      line-height: 1.5;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .feature-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .pill {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Realistic 3D Mobile Device Mockup */
+    .device-column {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      perspective: 1200px;
+      z-index: 10;
+    }
+
+    .phone-mockup {
+      width: 290px;
+      height: 590px;
+      background: #000;
+      border-radius: 46px;
+      border: 10px solid #221a1c;
+      box-shadow: 
+        0 0 0 2px rgba(227, 178, 60, 0.4),
+        0 25px 60px rgba(0, 0, 0, 0.8),
+        inset 0 0 10px rgba(255, 255, 255, 0.2);
+      position: relative;
+      overflow: hidden;
+      transform: rotateY(-10deg) rotateX(4deg);
+      transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .phone-mockup:hover {
+      transform: rotateY(0deg) rotateX(0deg) scale(1.02);
+    }
+
+    /* Phone Speaker & Dynamic Island */
+    .dynamic-island {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 95px;
+      height: 22px;
+      background: #000;
+      border-radius: 20px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 7px;
+      transition: width 0.4s ease, height 0.4s ease;
+    }
+
+    .dynamic-island.expanded {
+      width: 210px;
+      height: 38px;
+      background: #1f0d11;
+      border: 1px solid var(--accent);
+      box-shadow: 0 4px 15px rgba(227, 178, 60, 0.4);
+    }
+
+    .island-camera {
+      width: 9px;
+      height: 9px;
+      background: #111;
+      border-radius: 50%;
+      border: 1px solid #333;
+    }
+
+    .island-sensor {
+      width: 7px;
+      height: 7px;
+      background: #080808;
+      border-radius: 50%;
+    }
+
+    .island-alert-text {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      display: none;
+      white-space: nowrap;
+    }
+
+    .dynamic-island.expanded .island-alert-text {
+      display: block;
+    }
+
+    /* Internal Phone Screen Container */
+    .screen-viewport {
+      width: 100%;
+      height: 100%;
+      background: #f8f3f2;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      color: #1a0d0f;
+    }
+
+    /* Screen UI Components (Pixel-accurate to E-Sauli React Native app) */
+    .app-header {
+      background: #7a1f2b;
+      color: #fff;
+      padding: 40px 14px 14px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .app-header-title {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+
+    .app-tabs {
+      display: flex;
+      background: #fff;
+      border-bottom: 1px solid #e0d5d5;
+    }
+
+    .app-tab {
+      flex: 1;
+      text-align: center;
+      padding: 10px 0;
+      font-size: 13px;
+      font-weight: 700;
+      color: #777;
+    }
+
+    .app-tab.active {
+      color: #7a1f2b;
+      border-bottom: 2px solid #7a1f2b;
+    }
+
+    .screen-feed {
+      padding: 12px;
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .search-mock {
+      background: #fff;
+      border: 1px solid #e0d5d5;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #555;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .typing-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 14px;
+      background: #7a1f2b;
+      margin-left: 2px;
+      animation: blink 0.9s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .item-card-mock {
+      background: #fff;
+      border-radius: 12px;
+      padding: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      border: 1px solid #ebdada;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      transform: translateY(0);
+      transition: transform 0.3s ease;
+    }
+
+    .item-card-mock.highlight-card {
+      border: 2px solid var(--accent);
+      background: #fffcf2;
+      animation: cardPulse 2s infinite alternate;
+    }
+
+    @keyframes cardPulse {
+      0% { box-shadow: 0 2px 8px rgba(227, 178, 60, 0.2); }
+      100% { box-shadow: 0 4px 18px rgba(227, 178, 60, 0.6); }
+    }
+
+    .item-img-mock {
+      width: 52px;
+      height: 52px;
+      border-radius: 8px;
+      background: #f0e6e7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .item-img-mock img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .item-details-mock {
+      flex: 1;
+    }
+
+    .item-badge-pill {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #e8f5e9;
+      color: #2e7d32;
+      margin-bottom: 2px;
+    }
+
+    .item-badge-pill.lost-pill {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    .item-title-mock {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a0d0f;
+    }
+
+    .item-sub-mock {
+      font-size: 10px;
+      color: #777;
+    }
+
+    /* Floating Alert Overlay */
+    .match-alert-popup {
+      position: absolute;
+      top: 60px;
+      left: 12px;
+      right: 12px;
+      background: rgba(122, 31, 43, 0.95);
+      color: #fff;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid var(--accent);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      transform: translateY(-120%);
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 50;
+    }
+
+    .match-alert-popup.show {
+      transform: translateY(0);
+    }
+
+    .match-alert-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .match-alert-desc {
+      font-size: 11px;
+      margin-top: 4px;
+      color: #ffeef0;
+      line-height: 1.3;
+    }
+
+    /* Verification Dialog Mock */
+    .verification-card-mock {
+      background: #fff;
+      border-radius: 14px;
+      padding: 14px;
+      border: 1px solid #e0d5d5;
+      margin-top: 10px;
+    }
+
+    .secret-q-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: #7a1f2b;
+      margin-bottom: 4px;
+    }
+
+    .secret-q-text {
+      font-size: 12px;
+      color: #222;
+      margin-bottom: 10px;
+    }
+
+    .secret-q-input {
+      background: #fbf8f8;
+      border: 1px solid #7a1f2b;
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #2e7d32;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Confetti Particles Container */
+    .confetti-holder {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 90;
+      display: none;
+    }
+
+    .confetti-holder.active {
+      display: block;
+    }
+
+    /* Timeline & Progress Bar */
+    .timeline-bar-container {
+      width: 100%;
+      max-width: 1080px;
+      margin-top: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 16px 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    .timeline-progress-track {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .timeline-progress-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      border-radius: 3px;
+      transition: width 0.1s linear;
+    }
+
+    .scene-indicators {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .scene-chip {
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.06);
+      color: #aaa;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .scene-chip:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+
+    .scene-chip.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--accent);
+      box-shadow: 0 0 10px rgba(227, 178, 60, 0.3);
+    }
+
+    /* Custom Image Uploader Drawer */
+    .customizer-box {
+      width: 100%;
+      max-width: 1080px;
+      margin-top: 18px;
+      background: rgba(26, 13, 15, 0.7);
+      border-radius: 14px;
+      padding: 16px 20px;
+      border: 1px solid rgba(227, 178, 60, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      z-index: 10;
+    }
+
+    .customizer-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .uploader-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+    }
+
+    .file-input-wrapper input[type=file] {
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Recording Canvas (Offscreen / Hidden) */
+    #recorderCanvas {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Glow Background -->
+  <div class="ambient-bg">
+    <div class="glow-sphere-1"></div>
+    <div class="glow-sphere-2"></div>
+  </div>
+
+  <!-- Top Action Bar -->
+  <header class="top-bar">
+    <div class="brand-group">
+      <div class="brand-badge">⚡ OFFICIAL PROMO</div>
+      <div class="brand-title">E-Sauli <span>Motion Graphic Ad</span></div>
+    </div>
+
+    <div class="control-actions">
+      <button class="btn btn-secondary" id="toggleOrientationBtn">📱 Switch to Portrait (9:16)</button>
+      <button class="btn btn-play" id="playPauseBtn">▶ Play Animation</button>
+      <button class="btn btn-record" id="recordBtn">🔴 Record & Download Video (1080p)</button>
+    </div>
+  </header>
+
+  <!-- Video Viewport / Stage -->
+  <div class="video-viewport" id="viewport">
+    <div class="stage" id="stage">
+      <div class="stage-grid"></div>
+
+      <!-- SCENE 1: THE HOOK -->
+      <div class="scene-content active" id="scene-1">
+        <div class="text-column">
+          <div class="scene-tag">📍 Campus Problem</div>
+          <h1 class="scene-title">Naiwan mo ba ang gamit mo sa <span class="highlight">campus?</span></h1>
+          <p class="scene-desc">Kalkulador sa Room 304? AquaFlask sa Gym? O Pitaka sa Cafeteria? Huwag mag-panic. Hindi na kailangang mag-post sa sari-saring Freedom Wall.</p>
+          <div class="feature-pills">
+            <div class="pill">🔍 Centralized Database</div>
+            <div class="pill">⚡ Real-time Alerts</div>
+            <div class="pill">🛡️ 100% Student Verified</div>
+          </div>
+        </div>
+
+        <div class="device-column">
+          <div class="phone-mockup">
+            <div class="dynamic-island">
+              <div class="island-camera"></div>
+              <div class="island-alert-text">Naghahanap...</div>
+              <div class="island-sensor"></div>
+            </div>
+            <div class="screen-viewport">
+              <div class="app-header">
+                <div class="app-header-title">E-Sauli</div>
+                <div style="font-size: 16px;">🔔</div>
+              </div>
+              <div class="app-tabs">
+                <div class="app-tab active">Nahanap (Found)</div>
+                <div class="app-tab">Nawala (Lost)</div>
+              </div>
+              <div class="screen-feed">
+                <div class="search-mock">
+                  <span>🔍</span>
+                  <span id="searchTypingText">Naghahanap ng gamit...</span>
+                  <span class="typing-cursor"></span>
+                </div>
+                <div class="item-card-mock highlight-card">
+                  <div class="item-img-mock" id="slot-img-1">📱</div>
+                  <div class="item-details-mock">
+                    <span class="item-badge-pill">NAHANAP</span>
+                    <div class="item-title-mock">Casio Scientific Calculator</div>
+                    <div class="item-sub-mock">📍 Classrooms • Room 304</div>
+                  </div>
+                </div>
+                <div class="item-card-mock">
+                  <div class="item-img-mock">👛</div>
+                  <div class="item-details-mock">
+                    <span class="item-badge-pill">NAHANAP</span>
+                    <div class="item-title-mock">Brown Leather Wallet</div>
+                    <div class="item-sub-mock">📍 Cafeteria • Handover sa Office</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCENE 2: SMART MATCHING -->
+      <div class="scene-content" id="scene-2">
+        <div class="text-column">
+          <div class="scene-tag">⚡ Smart Matching</div>
+          <h1 class="scene-title">Deterministic <span class="highlight">Smart Matching Engine</span></h1>
+          <p class="scene-desc">Pag-post mo pa lamang, awtomatikong sinusuri ng algorithm ang kategorya, lokasyon, at petsa. Instant match notification sa iyong cellphone!</p>
+          <div class="feature-pills">
+            <div class="pill">🎯 +40 Category Match</div>
+            <div class="pill">📍 +30 Location Match</div>
+            <div class="pill">🕒 Instant Notification</div>
+          </div>
+        </div>
+
+        <div class="device-column">
+          <div class="phone-mockup">
+            <div class="dynamic-island expanded">
+              <div class="island-camera"></div>
+              <div class="island-alert-text">🔔 Match Found (90% Score)</div>
+              <div class="island-sensor"></div>
+            </div>
+            <div class="screen-viewport">
+              <div class="match-alert-popup show">
+                <div class="match-alert-title">✨ MAY NAKAKITA SA GAMIT MO!</div>
+                <div class="match-alert-desc">Itinugma ng E-Sauli ang nawawalang Casio Calculator sa Room 304.</div>
+              </div>
+              <div class="app-header" style="opacity: 0.6;">
+                <div class="app-header-title">E-Sauli</div>
+              </div>
+              <div class="screen-feed" style="padding-top: 90px;">
+                <div class="item-card-mock highlight-card">
+                  <div class="item-img-mock">📱</div>
+                  <div class="item-details-mock">
+                    <span class="item-badge-pill">MATCHED ITEM</span>
+                    <div class="item-title-mock">Casio FX-991EX ClassWiz</div>
+                    <div class="item-sub-mock">May sticker ng pusa sa likod</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCENE 3: CRYPTOGRAPHIC VERIFICATION -->
+      <div class="scene-content" id="scene-3">
+        <div class="text-column">
+          <div class="scene-tag">🔒 Anti-Theft Security</div>
+          <h1 class="scene-title">Protektado ng <span class="highlight">Secret HMAC Verification</span></h1>
+          <p class="scene-desc">Hindi basta-basta makukuha ng iba. May Secret Question at Cash Amount checking sa server. 3 strikes lockout laban sa mga pekeng claimant!</p>
+          <div class="feature-pills">
+            <div class="pill">🔐 SHA-256 HMAC Hash</div>
+            <div class="pill">⛔ 3-Attempt Lockout</div>
+            <div class="pill">🏢 Office Handover Policy</div>
+          </div>
+        </div>
+
+        <div class="device-column">
+          <div class="phone-mockup">
+            <div class="dynamic-island">
+              <div class="island-camera"></div>
+              <div class="island-sensor"></div>
+            </div>
+            <div class="screen-viewport">
+              <div class="app-header">
+                <div class="app-header-title">Pag-claim ng Gamit</div>
+              </div>
+              <div class="screen-feed">
+                <div class="verification-card-mock">
+                  <div class="secret-q-label">🔒 SECRET QUESTION</div>
+                  <div class="secret-q-text">"Anong kulay at hugis ng sticker sa likod ng kalkulador?"</div>
+                  <div class="secret-q-input">
+                    <span>Orange Cat Sticker</span>
+                    <span>✅ VERIFIED</span>
+                  </div>
+                  <div style="margin-top: 10px; font-size: 10px; color: #2e7d32; font-weight: 700;">
+                    ✓ Tugma sa server hash. Aprubado para sa handover!
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCENE 4: REALTIME CHAT & HANDOVER -->
+      <div class="scene-content" id="scene-4">
+        <div class="text-column">
+          <div class="scene-tag">💬 Realtime Chat</div>
+          <h1 class="scene-title">Ligtas na <span class="highlight">Koordinasyon at Handover</span></h1>
+          <p class="scene-desc">Direktang mag-usap ang nag-post at nag-claim gamit ang end-to-end scoped Realtime chat. Pwede ring i-turn over nang opisyal sa Campus Office.</p>
+          <div class="feature-pills">
+            <div class="pill">⚡ Supabase Realtime</div>
+            <div class="pill">📍 Safe Campus Meetup</div>
+            <div class="pill">🏢 Official Office Records</div>
+          </div>
+        </div>
+
+        <div class="device-column">
+          <div class="phone-mockup">
+            <div class="dynamic-island">
+              <div class="island-camera"></div>
+              <div class="island-sensor"></div>
+            </div>
+            <div class="screen-viewport">
+              <div class="app-header">
+                <div class="app-header-title">Chat: Casio Calculator</div>
+              </div>
+              <div class="screen-feed" style="gap: 8px;">
+                <div style="background: #e9e4e4; padding: 8px 12px; border-radius: 12px; align-self: flex-start; max-width: 80%; font-size: 11px;">
+                  Hello po! Nahanap ko yung calculator sa Room 304.
+                </div>
+                <div style="background: #7a1f2b; color: #fff; padding: 8px 12px; border-radius: 12px; align-self: flex-end; max-width: 80%; font-size: 11px;">
+                  Salamat po! Nai-surrender nyo na po ba sa Lost & Found Office?
+                </div>
+                <div style="background: #e9e4e4; padding: 8px 12px; border-radius: 12px; align-self: flex-start; max-width: 80%; font-size: 11px;">
+                  Opo, nasa Ground Floor Admin Building na po, safe and sound!
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCENE 5: REWARDS & AURA POINTS -->
+      <div class="scene-content" id="scene-5">
+        <div class="text-column">
+          <div class="scene-tag">🏆 Gamified Good Karma</div>
+          <h1 class="scene-title">Aura Points & <span class="highlight">Campus Achievements</span></h1>
+          <p class="scene-desc">Bawat matagumpay na pagbabalik ay may katumbas na +50 Aura Points, Speedy bonus, at mga prestihiyosong badge sa Leaderboard!</p>
+          <div class="feature-pills">
+            <div class="pill">✨ +50 Aura Points</div>
+            <div class="pill">⚡ Speedy Return Badge</div>
+            <div class="pill">👑 Campus Legend Rank</div>
+          </div>
+        </div>
+
+        <div class="device-column">
+          <div class="phone-mockup">
+            <div class="dynamic-island">
+              <div class="island-camera"></div>
+              <div class="island-sensor"></div>
+            </div>
+            <div class="screen-viewport" style="align-items: center; justify-content: center; text-align: center; padding: 20px;">
+              <div style="font-size: 54px; margin-bottom: 8px;">🏆</div>
+              <div style="font-size: 18px; font-weight: 800; color: #7a1f2b;">NAISAULI NANG MATAGUMPAY!</div>
+              <div style="font-size: 13px; color: #555; margin-top: 4px;">Natanggap na ng may-ari ang gamit.</div>
+              <div style="background: #fff8e1; border: 2px solid var(--accent); border-radius: 12px; padding: 12px 24px; margin-top: 14px; font-weight: 800; font-size: 20px; color: #b78103;">
+                +50 Aura Points!
+              </div>
+              <div style="margin-top: 12px; font-size: 11px; font-weight: 700; color: #2e7d32;">
+                🎉 Unlocked: "Good Samaritan" Badge!
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCENE 6: CALL TO ACTION / GRAND FINALE -->
+      <div class="scene-content" id="scene-6">
+        <div class="text-column" style="max-width: 600px; text-align: center; margin: 0 auto;">
+          <div class="scene-tag" style="margin: 0 auto 16px auto;">🚀 Simulan Gamitin Ngayon</div>
+          <h1 class="scene-title" style="font-size: 46px;">E-Sauli</h1>
+          <p class="scene-desc" style="font-size: 20px; color: #fff;">
+            Ang Bilis Maibalik. Ligtas. Mapagkakatiwalaan.
+          </p>
+          <div class="feature-pills" style="justify-content: center; margin-bottom: 24px;">
+            <div class="pill">📱 Mobile APK</div>
+            <div class="pill">🌐 Web & PWA</div>
+            <div class="pill">🎓 Libre para sa Estudyante</div>
+          </div>
+          <div style="font-size: 14px; color: var(--accent); font-weight: 700;">
+            Subukan ngayon sa iyong campus browser o cellphone!
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Timeline Controller -->
+  <div class="timeline-bar-container">
+    <div class="timeline-progress-track" id="progressTrack">
+      <div class="timeline-progress-fill" id="progressFill"></div>
+    </div>
+    <div class="scene-indicators">
+      <button class="scene-chip active" data-scene="1">1. The Problem</button>
+      <button class="scene-chip" data-scene="2">2. Smart Match</button>
+      <button class="scene-chip" data-scene="3">3. Cryptographic Claim</button>
+      <button class="scene-chip" data-scene="4">4. Realtime Chat</button>
+      <button class="scene-chip" data-scene="5">5. Aura Rewards</button>
+      <button class="scene-chip" data-scene="6">6. Grand Finale</button>
+    </div>
+  </div>
+
+  <!-- Custom Image Injector Hub -->
+  <div class="customizer-box">
+    <div class="customizer-title">
+      <span>🎨 Custom Image Injector</span>
+      <span style="font-size: 12px; font-weight: 400; color: #ccc;">(Palitan ang mga larawan sa animation gamit ang sarili mong photo o logo)</span>
+    </div>
+    <div class="uploader-group">
+      <div class="file-input-wrapper">
+        <button class="btn btn-secondary">🖼️ Upload Custom Item Photo</button>
+        <input type="file" id="itemPhotoUpload" accept="image/*">
+      </div>
+    </div>
+  </div>
+
+  <!-- Offscreen 1080p Recording Canvas -->
+  <canvas id="recorderCanvas" width="1920" height="1080"></canvas>
+
+  <script>
+    // Animation & Storyboard Engine
+    const scenes = [
+      { id: 'scene-1', duration: 5500 },
+      { id: 'scene-2', duration: 5500 },
+      { id: 'scene-3', duration: 5500 },
+      { id: 'scene-4', duration: 5500 },
+      { id: 'scene-5', duration: 5500 },
+      { id: 'scene-6', duration: 5500 },
+    ];
+
+    let currentSceneIndex = 0;
+    let isPlaying = true;
+    let isRecording = false;
+    let animationTimer = null;
+    let startTime = Date.now();
+    let totalDuration = scenes.reduce((acc, s) => acc + s.duration, 0);
+
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const recordBtn = document.getElementById('recordBtn');
+    const toggleOrientationBtn = document.getElementById('toggleOrientationBtn');
+    const viewport = document.getElementById('viewport');
+    const progressFill = document.getElementById('progressFill');
+    const sceneChips = document.querySelectorAll('.scene-chip');
+    const recorderCanvas = document.getElementById('recorderCanvas');
+    const ctx = recorderCanvas.getContext('2d');
+
+    // Switch active scene
+    function showScene(index) {
+      currentSceneIndex = index;
+      document.querySelectorAll('.scene-content').forEach((el, idx) => {
+        el.classList.toggle('active', idx === index);
+      });
+      sceneChips.forEach((chip, idx) => {
+        chip.classList.toggle('active', idx === index);
+      });
+    }
+
+    // Storyboard Playback Loop
+    function nextScene() {
+      if (!isPlaying) return;
+      currentSceneIndex = (currentSceneIndex + 1) % scenes.length;
+      showScene(currentSceneIndex);
+      animationTimer = setTimeout(nextScene, scenes[currentSceneIndex].duration);
+    }
+
+    function startPlayback() {
+      isPlaying = true;
+      playPauseBtn.textContent = '⏸ Pause Animation';
+      clearTimeout(animationTimer);
+      animationTimer = setTimeout(nextScene, scenes[currentSceneIndex].duration);
+    }
+
+    function pausePlayback() {
+      isPlaying = false;
+      playPauseBtn.textContent = '▶ Play Animation';
+      clearTimeout(animationTimer);
+    }
+
+    playPauseBtn.addEventListener('click', () => {
+      if (isPlaying) {
+        pausePlayback();
+      } else {
+        startPlayback();
+      }
+    });
+
+    // Scene Chip click jumping
+    sceneChips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const sceneNum = parseInt(chip.getAttribute('data-scene')) - 1;
+        showScene(sceneNum);
+        if (isPlaying) {
+          clearTimeout(animationTimer);
+          animationTimer = setTimeout(nextScene, scenes[sceneNum].duration);
+        }
+      });
+    });
+
+    // Orientation toggle (16:9 vs 9:16)
+    toggleOrientationBtn.addEventListener('click', () => {
+      const isPortrait = viewport.classList.toggle('portrait');
+      toggleOrientationBtn.textContent = isPortrait 
+        ? '🖥️ Switch to Landscape (16:9)' 
+        : '📱 Switch to Portrait (9:16)';
+    });
+
+    // Smooth Progress Bar Update
+    let progressInterval = setInterval(() => {
+      if (!isPlaying) return;
+      const elapsedTotal = (currentSceneIndex * 5500) % totalDuration;
+      const pct = ((currentSceneIndex + 1) / scenes.length) * 100;
+      progressFill.style.width = pct + '%';
+    }, 100);
+
+    // Dynamic Search Typing Simulation
+    const typingTerms = ['Casio Calculator Room 304', 'Brown Leather Wallet Cafeteria', 'AquaFlask Mustard Gym'];
+    let termIndex = 0;
+    let charIndex = 0;
+    const typingEl = document.getElementById('searchTypingText');
+
+    setInterval(() => {
+      if (currentSceneIndex === 0) {
+        const currentTerm = typingTerms[termIndex];
+        if (charIndex < currentTerm.length) {
+          typingEl.textContent = currentTerm.substring(0, charIndex + 1);
+          charIndex++;
+        } else {
+          setTimeout(() => {
+            charIndex = 0;
+            termIndex = (termIndex + 1) % typingTerms.length;
+          }, 1500);
+        }
+      }
+    }, 120);
+
+    // Custom Image Upload handler
+    document.getElementById('itemPhotoUpload').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          const imgSlot = document.getElementById('slot-img-1');
+          imgSlot.innerHTML = `<img src="${evt.target.result}" alt="Custom Item">`;
+          alert('Matagumpay na naipalit ang iyong custom photo sa animation!');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // 1080p Full HD Video Recording Pipeline (Canvas + MediaRecorder)
+    let mediaRecorder = null;
+    let recordedChunks = [];
+
+    recordBtn.addEventListener('click', async () => {
+      if (isRecording) {
+        stopRecording();
+        return;
+      }
+      startRecording();
+    });
+
+    async function startRecording() {
+      isRecording = true;
+      recordBtn.classList.add('recording');
+      recordBtn.textContent = '⏹ Itigil at I-download ang Video';
+
+      // Reset to scene 1
+      showScene(0);
+      startPlayback();
+
+      recordedChunks = [];
+      const stream = recorderCanvas.captureStream(60); // 60 FPS
+      
+      const options = { mimeType: 'video/webm;codecs=vp9' };
+      try {
+        mediaRecorder = new MediaRecorder(stream, options);
+      } catch (e) {
+        mediaRecorder = new MediaRecorder(stream);
+      }
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          recordedChunks.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = 'E-Sauli-Commercial-Ad-1080p.webm';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        }, 100);
+
+        recordBtn.classList.remove('recording');
+        recordBtn.textContent = '🔴 Record & Download Video (1080p)';
+        isRecording = false;
+        alert('🎉 Matagumpay na nai-record ang video! Sinimulan na ang pag-download ng 1080p video file.');
+      };
+
+      mediaRecorder.start();
+
+      // Render frames to 1080p canvas continuously
+      renderRecordingFrames();
+
+      // Auto-stop after full cycle of all 6 scenes (33 seconds)
+      setTimeout(() => {
+        if (isRecording) {
+          stopRecording();
+        }
+      }, totalDuration);
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+    }
+
+    // Render Canvas frames
+    function renderRecordingFrames() {
+      if (!isRecording) return;
+
+      // Draw dark Maroon gradient background
+      const grad = ctx.createRadialGradient(960, 540, 100, 960, 540, 900);
+      grad.addColorStop(0, '#2a0b12');
+      grad.addColorStop(1, '#0d0407');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1920, 1080);
+
+      // Draw subtle grid
+      ctx.strokeStyle = 'rgba(227, 178, 60, 0.05)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < 1920; x += 60) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, 1080);
+        ctx.stroke();
+      }
+      for (let y = 0; y < 1080; y += 60) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(1920, y);
+        ctx.stroke();
+      }
+
+      // Draw Current Scene Titles & Motion Elements
+      ctx.fillStyle = '#e3b23c';
+      ctx.font = 'bold 24px "Space Grotesk", sans-serif';
+      ctx.fillText('E-SAULI • OFFICIAL ADVERTISEMENT', 120, 140);
+
+      const titles = [
+        'Naiwan mo ba ang gamit mo sa campus?',
+        'Deterministic Smart Matching Engine',
+        'Protektado ng Secret HMAC Verification',
+        'Ligtas na Koordinasyon at Handover',
+        'Aura Points & Campus Achievements',
+        'E-Sauli: Ang Bilis Maibalik. Ligtas. Maaasahan.'
+      ];
+
+      const subtitles = [
+        'Huwag mag-panic. Centralized, mabilis, at libre para sa bawat mag-aaral.',
+        'Awtomatikong tinutugma ang nawala at nahanap na gamit sa real-time.',
+        'May Secret Question at 3-Strike Lockout laban sa mga pekeng claimant.',
+        'End-to-end Realtime chat at opisyal na turn-over sa Campus Office.',
+        '+50 Aura Points at mga prestihiyosong badges para sa mga tapat na nagbabalik.',
+        'Subukan ngayon sa iyong mobile phone o browser!'
+      ];
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 56px "Space Grotesk", sans-serif';
+      ctx.fillText(titles[currentSceneIndex], 120, 220);
+
+      ctx.fillStyle = '#d0c0c2';
+      ctx.font = '500 28px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText(subtitles[currentSceneIndex], 120, 280);
+
+      // Draw 3D Phone Mockup representation on canvas
+      const phoneX = 1350;
+      const phoneY = 160;
+      const phoneW = 420;
+      const phoneH = 800;
+
+      // Outer phone body shadow
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.beginPath();
+      ctx.roundRect(phoneX + 20, phoneY + 20, phoneW, phoneH, 50);
+      ctx.fill();
+
+      // Outer bezel
+      ctx.fillStyle = '#221a1c';
+      ctx.strokeStyle = 'rgba(227, 178, 60, 0.5)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.roundRect(phoneX, phoneY, phoneW, phoneH, 50);
+      ctx.fill();
+      ctx.stroke();
+
+      // Phone screen
+      ctx.fillStyle = '#f8f3f2';
+      ctx.beginPath();
+      ctx.roundRect(phoneX + 16, phoneY + 16, phoneW - 32, phoneH - 32, 40);
+      ctx.fill();
+
+      // Header on phone
+      ctx.fillStyle = '#7a1f2b';
+      ctx.beginPath();
+      ctx.roundRect(phoneX + 16, phoneY + 16, phoneW - 32, 100, [40, 40, 0, 0]);
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 26px "Space Grotesk", sans-serif';
+      ctx.fillText('E-Sauli', phoneX + 40, phoneY + 80);
+
+      // Dynamic Island
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.roundRect(phoneX + (phoneW / 2) - 75, phoneY + 26, 150, 30, 15);
+      ctx.fill();
+
+      // Content Card
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#ebdada';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(phoneX + 36, phoneY + 140, phoneW - 72, 180, 16);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#7a1f2b';
+      ctx.font = 'bold 22px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText('Casio Calculator FX-991EX', phoneX + 56, phoneY + 190);
+
+      ctx.fillStyle = '#666';
+      ctx.font = '16px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText('📍 Classrooms • Room 304', phoneX + 56, phoneY + 225);
+
+      ctx.fillStyle = '#2e7d32';
+      ctx.font = 'bold 16px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText('✓ VERIFIED SAFE & SECURED', phoneX + 56, phoneY + 265);
+
+      // Reward Banner on Scene 5
+      if (currentSceneIndex === 4) {
+        ctx.fillStyle = '#fff8e1';
+        ctx.strokeStyle = '#e3b23c';
+        ctx.beginPath();
+        ctx.roundRect(phoneX + 36, phoneY + 350, phoneW - 72, 140, 16);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#b78103';
+        ctx.font = 'bold 32px "Space Grotesk", sans-serif';
+        ctx.fillText('+50 AURA POINTS!', phoneX + 60, phoneY + 410);
+
+        ctx.fillStyle = '#2e7d32';
+        ctx.font = 'bold 18px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('🎉 Badge Unlocked: Good Samaritan', phoneX + 60, phoneY + 450);
+      }
+
+      requestAnimationFrame(renderRecordingFrames);
+    }
+
+    // Auto-start on load
+    window.addEventListener('load', () => {
+      startPlayback();
+    });
+  </script>
+</body>
+</html>
