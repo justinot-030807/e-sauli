@@ -96,13 +96,27 @@ jobs:
           mkdir -p /tmp/publish
           cp -v gradle-build.log /tmp/publish/build.log || true
           cp -v apk-output/* /tmp/publish/ 2>/dev/null || true
+          git branch -D apk-build 2>/dev/null || true
           git checkout --orphan apk-build
           git rm -rf . || true
           cp -v /tmp/publish/* ./ 2>/dev/null || true
           ls -la
-          git add -A
+          git add -f -A
           git commit -m "build: publish build artifacts and logs [skip ci]" || true
           git push -f origin apk-build || true
+
+      - name: 🚀 Publish Direct Download Release
+        if: success()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-apk
+          name: "E-Sauli APK Direct Download"
+          body: "Standalone APK build for E-Sauli Lost and Found campus app. Click the `app-release.apk` link below to download directly to your mobile device."
+          files: apk-output/*.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 📤 Upload Build Log Artifact
         if: always()
