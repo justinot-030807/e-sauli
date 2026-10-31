@@ -265,7 +265,7 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = ''
+SET search_path = 'public'
 AS $$
 BEGIN
   INSERT INTO public.profiles (id, full_name, student_id, nickname, college, role, approval_status)
@@ -275,16 +275,17 @@ BEGIN
     COALESCE(NEW.raw_user_meta_data->>'student_id', ''),
     COALESCE(NEW.raw_user_meta_data->>'nickname', ''),
     COALESCE(NEW.raw_user_meta_data->>'college', ''),
-    'student',
-    CASE
+    'student'::public.user_role,
+    (CASE
       WHEN (SELECT value FROM public.system_settings WHERE key = 'require_school_email') = 'true'
         AND NEW.email LIKE '%@' || (SELECT value FROM public.system_settings WHERE key = 'school_email_domain')
-      THEN 'approved'
+      THEN 'approved'::public.approval_status
       WHEN (SELECT value FROM public.system_settings WHERE key = 'require_school_email') = 'false'
-      THEN 'approved'
-      ELSE 'pending'
-    END
-  );
+      THEN 'approved'::public.approval_status
+      ELSE 'pending'::public.approval_status
+    END)
+  )
+  ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
 $$;

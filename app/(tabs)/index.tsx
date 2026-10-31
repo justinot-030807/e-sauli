@@ -11,6 +11,7 @@ import {
   Modal,
 } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/useTheme';
 import { Spacing, FontSize, BorderRadius } from '@/constants/theme';
 import {
@@ -115,7 +116,7 @@ export default function HomeFeedScreen() {
               },
             ]}
           >
-            <Text style={styles.searchIcon}>🔍</Text>
+            <Ionicons name="search-outline" size={18} color={theme.textSecondary} style={{ marginRight: 6 }} />
             <TextInput
               style={[styles.searchInput, { color: theme.text }]}
               placeholder="Maghanap ng gamit..."
@@ -127,7 +128,7 @@ export default function HomeFeedScreen() {
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Text style={[styles.clearIcon, { color: theme.placeholder }]}>✕</Text>
+                <Ionicons name="close-circle" size={16} color={theme.placeholder} />
               </TouchableOpacity>
             )}
           </View>
@@ -146,7 +147,11 @@ export default function HomeFeedScreen() {
             ]}
             onPress={() => setShowFilterModal(true)}
           >
-            <Text style={styles.filterIcon}>⚙️</Text>
+            <Ionicons
+              name="options-outline"
+              size={20}
+              color={selectedLocation !== 'All' || sortBy !== 'newest' ? theme.primary : theme.textSecondary}
+            />
           </TouchableOpacity>
         </View>
 
@@ -275,7 +280,7 @@ export default function HomeFeedScreen() {
         onPress={() => router.push('/items/post')}
         activeOpacity={0.85}
       >
-        <Text style={styles.fabIcon}>＋</Text>
+        <Ionicons name="add" size={20} color="#ffffff" style={{ marginRight: 4 }} />
         <Text style={styles.fabText}>Mag-report</Text>
       </TouchableOpacity>
 

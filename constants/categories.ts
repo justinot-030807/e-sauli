@@ -19,16 +19,16 @@ export const SENSITIVE_CATEGORIES: readonly ItemCategory[] = [
   'ID/Cards',
 ] as const;
 
-export const CATEGORY_ICONS: Record<ItemCategory, string> = {
-  Cash: '💵',
-  Wallet: '👛',
-  'ID/Cards': '🪪',
-  'Phone/Gadgets': '📱',
-  Bags: '🎒',
-  Clothing: '👕',
-  'Books/School Supplies': '📚',
-  Keys: '🔑',
-  Others: '📦',
+export const CATEGORY_ICONS: Record<ItemCategory, any> = {
+  Cash: 'cash-outline',
+  Wallet: 'wallet-outline',
+  'ID/Cards': 'card-outline',
+  'Phone/Gadgets': 'phone-portrait-outline',
+  Bags: 'bag-handle-outline',
+  Clothing: 'shirt-outline',
+  'Books/School Supplies': 'book-outline',
+  Keys: 'key-outline',
+  Others: 'cube-outline',
 };
 
 export const CAMPUS_LOCATIONS = [

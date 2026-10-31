@@ -13,3 +13,8 @@ web-build/
 .env.local
 .env.production
 .claude/
+VIDEO REERENCE/
+remotion-promo/
+promo/
+*.mp4
+*.wav

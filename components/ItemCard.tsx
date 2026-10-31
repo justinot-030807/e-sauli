@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/useTheme';
 import { Spacing, FontSize, BorderRadius } from '@/constants/theme';
 import { CATEGORY_ICONS, type ItemCategory } from '@/constants/categories';
@@ -14,7 +15,8 @@ export const ItemCard = React.memo(function ItemCard({ item }: ItemCardProps) {
   const theme = useTheme();
 
   const isLost = item.type === 'lost';
-  const categoryIcon = CATEGORY_ICONS[item.category as ItemCategory] || '📦';
+  const categoryIcon = CATEGORY_ICONS[item.category as ItemCategory] || 'cube-outline';
+  const imageSource = (item as any).localImage || (item.signedPhotoUrl ? { uri: item.signedPhotoUrl } : null);
 
   const handlePress = () => {
     router.push({
@@ -42,14 +44,18 @@ export const ItemCard = React.memo(function ItemCard({ item }: ItemCardProps) {
           { backgroundColor: isLost ? '#FBEBEB' : '#EAF7EE' },
         ]}
       >
-        {item.signedPhotoUrl ? (
+        {imageSource ? (
           <Image
-            source={{ uri: item.signedPhotoUrl }}
+            source={imageSource}
             style={styles.thumbnail}
             resizeMode="cover"
           />
         ) : (
-          <Text style={styles.categoryEmoji}>{categoryIcon}</Text>
+          <Ionicons
+            name={categoryIcon}
+            size={32}
+            color={isLost ? '#A83246' : '#1E5B32'}
+          />
         )}
       </View>
 
@@ -88,8 +94,9 @@ export const ItemCard = React.memo(function ItemCard({ item }: ItemCardProps) {
 
         {/* Location & Date */}
         <View style={styles.metaRow}>
+          <Ionicons name="location-outline" size={12} color={theme.textSecondary} />
           <Text style={[styles.metaText, { color: theme.textSecondary }]} numberOfLines={1}>
-            📍 {item.location}
+            {item.location}
           </Text>
           <Text style={[styles.metaText, { color: theme.textSecondary }]}>
             • {item.date_happened}
@@ -99,8 +106,9 @@ export const ItemCard = React.memo(function ItemCard({ item }: ItemCardProps) {
         {/* Office Pickup Indicator */}
         {item.requires_office_pickup && (
           <View style={[styles.officeBadge, { backgroundColor: theme.accent + '20' }]}>
+            <Ionicons name="business-outline" size={11} color="#8F6600" />
             <Text style={[styles.officeBadgeText, { color: '#8F6600' }]}>
-              🏢 Sa Opisina Kukunin
+              Sa Opisina Kukunin
             </Text>
           </View>
         )}

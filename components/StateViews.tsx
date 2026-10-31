@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/useTheme';
 import { Spacing, FontSize, BorderRadius } from '@/constants/theme';
 
@@ -19,15 +20,16 @@ export function LoadingView({ message = 'Kinakarga...' }: LoadingViewProps) {
 }
 
 interface EmptyViewProps {
-  emoji?: string;
+  iconName?: any;
   title?: string;
   description?: string;
   actionLabel?: string;
   onAction?: () => void;
+  emoji?: string;
 }
 
 export function EmptyView({
-  emoji = '📦',
+  iconName = 'cube-outline',
   title = 'Walang nahanap na item',
   description = 'Subukang baguhin ang mga filter o maghanap ng ibang salita.',
   actionLabel,
@@ -37,7 +39,7 @@ export function EmptyView({
 
   return (
     <View style={[styles.centered, { backgroundColor: theme.background }]}>
-      <Text style={styles.emoji}>{emoji}</Text>
+      <Ionicons name={iconName} size={48} color={theme.textSecondary} style={{ marginBottom: Spacing.sm }} />
       <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
       <Text style={[styles.description, { color: theme.textSecondary }]}>{description}</Text>
       {actionLabel && onAction && (
@@ -66,7 +68,7 @@ export function ErrorView({
 
   return (
     <View style={[styles.centered, { backgroundColor: theme.background }]}>
-      <Text style={styles.emoji}>⚠️</Text>
+      <Ionicons name="alert-circle-outline" size={48} color={theme.error} style={{ marginBottom: Spacing.sm }} />
       <Text style={[styles.title, { color: theme.error }]}>Nagka-aberya</Text>
       <Text style={[styles.description, { color: theme.textSecondary }]}>{message}</Text>
       {onRetry && (

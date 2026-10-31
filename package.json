@@ -11,6 +11,7 @@
     "export:web": "npx expo export -p web"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.1.1",
     "@react-navigation/native": "^7.1.6",
     "@supabase/supabase-js": "^2.49.4",
     "expo": "~57.0.27",
@@ -21,7 +22,7 @@
     "expo-router": "~5.0.7",
     "expo-secure-store": "~14.2.3",
     "expo-status-bar": "~57.0.1",
-    "query-string": "^9.5.1",
+    "query-string": "7.1.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",

@@ -9,13 +9,20 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          headerStyle: { backgroundColor: '#800000' },
+          headerTintColor: '#FFFFFF',
+          headerTitleStyle: { fontWeight: '700' },
+        }}
+      >
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="privacy-consent" />
         <Stack.Screen name="pending-approval" />
-        <Stack.Screen name="items/[id]" options={{ headerShown: true }} />
-        <Stack.Screen name="items/post" options={{ headerShown: true }} />
+        <Stack.Screen name="items/[id]" options={{ headerShown: true, headerTitle: 'Detalye ng Gamit' }} />
+        <Stack.Screen name="items/post" options={{ headerShown: true, headerTitle: 'Mag-report ng Gamit' }} />
         <Stack.Screen name="claims/create" options={{ headerShown: true }} />
         <Stack.Screen name="claims/[id]" options={{ headerShown: true }} />
         <Stack.Screen name="chat/[claimId]" options={{ headerShown: true }} />

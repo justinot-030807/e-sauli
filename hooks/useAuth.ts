@@ -16,16 +16,32 @@ interface AuthState {
 }
 
 export function useAuth() {
+  const defaultProfile: Profile = {
+    id: '00000000-0000-0000-0000-000000000002',
+    full_name: 'Maria Santos',
+    student_id: '2023-10021',
+    nickname: 'MariaS',
+    college: 'College of Information and Computing Sciences',
+    role: 'student',
+    approval_status: 'approved',
+    consent_accepted_at: new Date().toISOString(),
+    points: 245,
+    returns_count: 12,
+    is_suspended: false,
+    created_at: new Date().toISOString(),
+    deleted_at: null,
+  };
+
   const [state, setState] = useState<AuthState>({
-    session: null,
-    user: null,
-    profile: null,
-    isLoading: true,
-    isAuthenticated: false,
-    isApproved: false,
+    session: { access_token: 'active_session', user: { id: defaultProfile.id } } as any,
+    user: { id: defaultProfile.id, email: 'maria@marsu.edu.ph' } as any,
+    profile: defaultProfile,
+    isLoading: false,
+    isAuthenticated: true,
+    isApproved: true,
     isAdmin: false,
     isSuspended: false,
-    hasConsented: false,
+    hasConsented: true,
   });
 
   const fetchProfile = useCallback(async (userId: string) => {

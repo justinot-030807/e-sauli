@@ -1,25 +1,15 @@
 import React from 'react';
 import { Composition } from 'remotion';
-import { ESaultCommercial } from './ESaultCommercial';
+import { PromoVideo } from './PromoVideo';
 
 export const RemotionRoot: React.FC = () => {
   return (
     <>
-      {/* 16:9 Landscape Main Broadcast Commercial (1080p Full HD) */}
+      {/* 20-second Vertical Promo Video (1080x1920, 30fps, 600 frames) */}
       <Composition
-        id="ESaultCommercial"
-        component={ESaultCommercial}
-        durationInFrames={900}
-        fps={30}
-        width={1920}
-        height={1080}
-      />
-
-      {/* 9:16 Vertical Story / Reel / TikTok Edition (1080x1920) */}
-      <Composition
-        id="ESaultCommercialVertical"
-        component={ESaultCommercial}
-        durationInFrames={900}
+        id="LostAndFoundPromo"
+        component={PromoVideo}
+        durationInFrames={600}
         fps={30}
         width={1080}
         height={1920}

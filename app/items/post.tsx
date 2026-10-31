@@ -15,6 +15,7 @@ import {
 import { router, Stack } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as Crypto from 'expo-crypto';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/useTheme';
 import { Spacing, FontSize, BorderRadius } from '@/constants/theme';
 import {
@@ -198,13 +199,19 @@ export default function PostItemScreen() {
             ]}
             onPress={() => setItemType('found')}
           >
+            <Ionicons
+              name="checkmark-circle-outline"
+              size={16}
+              color={itemType === 'found' ? '#ffffff' : theme.textSecondary}
+              style={{ marginRight: 6 }}
+            />
             <Text
               style={[
                 styles.toggleButtonText,
                 { color: itemType === 'found' ? '#ffffff' : theme.textSecondary },
               ]}
             >
-              ✨ Nahanap Ko (Found)
+              Nahanap Ko (Found)
             </Text>
           </TouchableOpacity>
 
@@ -215,13 +222,19 @@ export default function PostItemScreen() {
             ]}
             onPress={() => setItemType('lost')}
           >
+            <Ionicons
+              name="search-outline"
+              size={16}
+              color={itemType === 'lost' ? '#ffffff' : theme.textSecondary}
+              style={{ marginRight: 6 }}
+            />
             <Text
               style={[
                 styles.toggleButtonText,
                 { color: itemType === 'lost' ? '#ffffff' : theme.textSecondary },
               ]}
             >
-              🔍 Nawala Sa Akin (Lost)
+              Nawala Sa Akin (Lost)
             </Text>
           </TouchableOpacity>
         </View>
@@ -250,7 +263,12 @@ export default function PostItemScreen() {
                   ]}
                   onPress={() => handleCategorySelect(cat)}
                 >
-                  <Text style={styles.categoryItemIcon}>{CATEGORY_ICONS[cat]}</Text>
+                  <Ionicons
+                    name={CATEGORY_ICONS[cat] || 'cube-outline'}
+                    size={22}
+                    color={isSelected ? theme.primary : theme.textSecondary}
+                    style={{ marginBottom: 4 }}
+                  />
                   <Text
                     style={[
                       styles.categoryItemText,
@@ -268,9 +286,12 @@ export default function PostItemScreen() {
           {/* Sensitive Category Notice */}
           {isSensitive && (
             <View style={[styles.sensitiveNotice, { backgroundColor: '#FFF9E6', borderColor: '#E3B23C' }]}>
-              <Text style={styles.sensitiveNoticeTitle}>
-                ⚠️ Protektadong Kategorya ({category})
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                <Ionicons name="shield-checkmark" size={16} color="#B8860B" style={{ marginRight: 6 }} />
+                <Text style={styles.sensitiveNoticeTitle}>
+                  Protektadong Kategorya ({category})
+                </Text>
+              </View>
               <Text style={styles.sensitiveNoticeBody}>
                 Bawal mag-upload ng larawan para sa kategoryang ito. Ang gamit ay dadalhin sa
                 Campus Lost & Found Office upang maprotektahan ang may-ari.
@@ -334,17 +355,25 @@ export default function PostItemScreen() {
                     {
                       borderColor: isSelected ? theme.primary : theme.border,
                       backgroundColor: isSelected ? theme.primary + '14' : theme.background,
+                      flexDirection: 'row',
+                      alignItems: 'center',
                     },
                   ]}
                   onPress={() => setLocation(loc)}
                 >
+                  <Ionicons
+                    name="location-outline"
+                    size={13}
+                    color={isSelected ? theme.primary : theme.textSecondary}
+                    style={{ marginRight: 4 }}
+                  />
                   <Text
                     style={[
                       styles.locationChipText,
                       { color: isSelected ? theme.primary : theme.text },
                     ]}
                   >
-                    📍 {loc}
+                    {loc}
                   </Text>
                 </TouchableOpacity>
               );
@@ -395,7 +424,7 @@ export default function PostItemScreen() {
                   ]}
                   onPress={handlePickImage}
                 >
-                  <Text style={styles.uploadIcon}>📷</Text>
+                  <Ionicons name="camera-outline" size={28} color={theme.primary} style={{ marginBottom: 4 }} />
                   <Text style={[styles.uploadText, { color: theme.primary }]}>
                     Pumili ng Larawan mula sa Gallery
                   </Text>

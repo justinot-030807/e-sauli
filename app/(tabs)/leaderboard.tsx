@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
 import {
   fetchLeaderboard,
   fetchUserRank,
@@ -187,7 +188,7 @@ export default function LeaderboardScreen() {
             <View style={styles.podiumColumn}>
               {top1 ? (
                 <>
-                  <Text style={styles.crownEmoji}>👑</Text>
+                  <Ionicons name="trophy" size={24} color="#D4AF37" style={{ marginBottom: 2 }} />
                   <View style={[styles.podiumAvatar, styles.avatar1]}>
                     <Text style={[styles.podiumAvatarText, { color: '#5A4000' }]}>
                       {getInitials(top1.nickname)}
@@ -257,7 +258,7 @@ export default function LeaderboardScreen() {
                     </View>
 
                     <View style={styles.rankPointsBadge}>
-                      <Text style={styles.rankPointsText}>✨ {entry.points}</Text>
+                      <Text style={styles.rankPointsText}>{entry.points} pts</Text>
                     </View>
                   </View>
                 );
@@ -289,12 +290,12 @@ export default function LeaderboardScreen() {
           <View style={styles.pinnedMotivation}>
             {userRank?.pointsToTop10 && userRank.pointsToTop10 > 0 ? (
               <Text style={styles.motivationText}>
-                🔥 {userRank.pointsToTop10} aura pa para sa Top 10!
+                {userRank.pointsToTop10} aura pa para sa Top 10!
               </Text>
             ) : userRank?.rank && userRank.rank <= 3 ? (
-              <Text style={styles.motivationGoldText}>🎉 Nasa Podium ka na!</Text>
+              <Text style={styles.motivationGoldText}>Nasa Podium ka na!</Text>
             ) : userRank?.rank && userRank.rank <= 10 ? (
-              <Text style={styles.motivationGoldText}>⭐ Top 10 Champion!</Text>
+              <Text style={styles.motivationGoldText}>Top 10 Champion!</Text>
             ) : (
               <Text style={styles.motivationText}>Mag-sauli para tumaas!</Text>
             )}

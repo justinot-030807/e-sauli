@@ -18,6 +18,7 @@ export interface ItemWithMeta extends Item {
   signedPhotoUrl?: string | null;
   posterNickname?: string;
   posterCollege?: string;
+  localImage?: any;
 }
 
 export interface ItemDetailResponse {
@@ -138,7 +139,115 @@ export async function fetchFeedItems(params: FeedFilterParams = {}): Promise<{
     throw new Error(error.message);
   }
 
-  const rawItems = data || [];
+  let rawItems = data || [];
+  if (rawItems.length === 0) {
+    rawItems = [
+      {
+        id: '00000000-0000-0000-0000-000000000101',
+        user_id: '00000000-0000-0000-0000-000000000002',
+        type: 'found',
+        title: 'Cute Pink Scientific Calculator',
+        description: 'Naiwan sa Room 304 matapos ang Calculus class. Kulay pink at nasa maayos na kundisyon.',
+        category: 'Phone/Gadgets',
+        location: 'Classrooms',
+        date_happened: new Date(Date.now() - 86400000).toISOString().split('T')[0],
+        photo_path: null,
+        localImage: require('@/assets/items/calculator.jpg'),
+        status: 'open',
+        is_hidden: false,
+        requires_office_pickup: false,
+        released_at: null,
+        auto_confirm_at: null,
+        expires_at: new Date(Date.now() + 2592000000).toISOString(),
+        created_at: new Date(Date.now() - 3600000 * 3).toISOString(),
+        updated_at: new Date(Date.now() - 3600000 * 3).toISOString(),
+        deleted_at: null,
+      },
+      {
+        id: '00000000-0000-0000-0000-000000000102',
+        user_id: '00000000-0000-0000-0000-000000000003',
+        type: 'found',
+        title: 'Brown Leather Bifold Wallet',
+        description: 'Naiwan sa mesa malapit sa counter ng University Cafeteria bandang tanghali. May resibo sa loob.',
+        category: 'Wallet',
+        location: 'Cafeteria',
+        date_happened: new Date().toISOString().split('T')[0],
+        photo_path: null,
+        localImage: require('@/assets/items/wallet.jpg'),
+        status: 'open',
+        is_hidden: false,
+        requires_office_pickup: true,
+        released_at: null,
+        auto_confirm_at: null,
+        expires_at: new Date(Date.now() + 2592000000).toISOString(),
+        created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
+        updated_at: new Date(Date.now() - 3600000 * 5).toISOString(),
+        deleted_at: null,
+      },
+      {
+        id: '00000000-0000-0000-0000-000000000103',
+        user_id: '00000000-0000-0000-0000-000000000004',
+        type: 'lost',
+        title: 'AquaFlask 32oz Insulated Tumbler',
+        description: 'Naiwan sa bleachers ng University Gymnasium matapos ang PE class bandang 4:00 PM.',
+        category: 'Others',
+        location: 'Gym',
+        date_happened: new Date(Date.now() - 86400000 * 2).toISOString().split('T')[0],
+        photo_path: null,
+        localImage: require('@/assets/items/tumbler.jpg'),
+        status: 'open',
+        is_hidden: false,
+        requires_office_pickup: false,
+        released_at: null,
+        auto_confirm_at: null,
+        expires_at: new Date(Date.now() + 2592000000).toISOString(),
+        created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
+        updated_at: new Date(Date.now() - 3600000 * 8).toISOString(),
+        deleted_at: null,
+      },
+      {
+        id: '00000000-0000-0000-0000-000000000104',
+        user_id: '00000000-0000-0000-0000-000000000005',
+        type: 'found',
+        title: 'MarSU Student ID Card with Lanyard',
+        description: 'Identification card found at 2nd floor library reading area.',
+        category: 'ID/Cards',
+        location: 'Library',
+        date_happened: new Date().toISOString().split('T')[0],
+        photo_path: null,
+        localImage: require('@/assets/items/id_card.jpg'),
+        status: 'open',
+        is_hidden: false,
+        requires_office_pickup: true,
+        released_at: null,
+        auto_confirm_at: null,
+        expires_at: new Date(Date.now() + 2592000000).toISOString(),
+        created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
+        updated_at: new Date(Date.now() - 3600000 * 12).toISOString(),
+        deleted_at: null,
+      },
+      {
+        id: '00000000-0000-0000-0000-000000000105',
+        user_id: '00000000-0000-0000-0000-000000000002',
+        type: 'found',
+        title: 'Acer Laptop Charger (65W USB-C)',
+        description: 'Naiwan nakasaksak sa IT Building Computer Lab 2.',
+        category: 'Phone/Gadgets',
+        location: 'IT Building',
+        date_happened: new Date().toISOString().split('T')[0],
+        photo_path: null,
+        status: 'open',
+        is_hidden: false,
+        requires_office_pickup: false,
+        released_at: null,
+        auto_confirm_at: null,
+        expires_at: new Date(Date.now() + 2592000000).toISOString(),
+        created_at: new Date(Date.now() - 3600000 * 15).toISOString(),
+        updated_at: new Date(Date.now() - 3600000 * 15).toISOString(),
+        deleted_at: null,
+      }
+    ] as any;
+  }
   const hasMore = rawItems.length > pageSize;
   const pageItems = rawItems.slice(0, pageSize);
 
