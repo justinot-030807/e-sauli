@@ -65,18 +65,20 @@ jobs:
           echo "org.gradle.parallel=false" >> android/gradle.properties
           echo "org.gradle.workers.max=2" >> android/gradle.properties
 
-      - name: 🔨 Build Android APK
+      - name: 🔨 Build Android Standalone APK (assembleRelease)
         working-directory: android
         run: |
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee ../gradle-build.log
+          ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee ../gradle-build.log
 
-      - name: 📦 Locate and Stage APK
+      - name: 📦 Locate and Stage Artifacts
         run: |
+          echo "=== FULL GRADLE BUILD LOG ==="
+          cat gradle-build.log || true
           mkdir -p apk-output
-          echo "=== SEARCHING FOR GENERATED APKs ==="
-          find android -name "*.apk" -ls || true
-          find android -name "*.apk" -exec cp -v {} apk-output/ \; || true
-          echo "=== STAGED APK FILES IN apk-output/ ==="
+          echo "=== SEARCHING FOR ALL BUILT FILES IN outputs/ ==="
+          find android/app/build/outputs -type f -ls || true
+          find android/app/build/outputs -type f \( -name "*.apk" -o -name "*.aab" \) -exec cp -v {} apk-output/ \; || true
+          echo "=== STAGED ARTIFACTS IN apk-output/ ==="
           ls -la apk-output/
 
       - name: 📤 Upload Build Log
@@ -90,5 +92,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: E-Sauli-LostAndFound-APK
-          path: apk-output/*.apk
+          path: apk-output/*
           retention-days: 14
