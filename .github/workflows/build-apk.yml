@@ -68,6 +68,11 @@ jobs:
         run: |
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee ../gradle-build.log
 
+      - name: 🔍 Locate Generated APK Files
+        run: |
+          echo "=== LOCATING GENERATED APK FILES ==="
+          find android/app/build/outputs -name "*.apk" || true
+
       - name: 📋 Publish Diagnostics on Failure
         if: failure()
         run: |
@@ -87,5 +92,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: E-Sauli-LostAndFound-APK
-          path: android/app/build/outputs/apk/debug/*.apk
+          path: android/app/build/outputs/**/*.apk
+          if-no-files-found: error
           retention-days: 14
