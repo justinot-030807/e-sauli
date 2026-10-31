@@ -17,12 +17,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 💾 Increase Swap Space (Prevent Out-Of-Memory)
-        run: |
-          sudo fallocate -l 4G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-          free -h
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 10
 
       - name: 🟢 Setup Node.js 20
         uses: actions/setup-node@v4
@@ -56,13 +53,15 @@ jobs:
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
           chmod +x android/gradlew
           mkdir -p ~/.gradle
-          echo "org.gradle.jvmargs=-Xmx2560m -XX:MaxMetaspaceSize=512m" >> ~/.gradle/gradle.properties
-          echo "org.gradle.parallel=false" >> ~/.gradle/gradle.properties
-          echo "org.gradle.workers.max=2" >> ~/.gradle/gradle.properties
+          cat << 'EOF' > ~/.gradle/gradle.properties
+          org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m
+          org.gradle.parallel=false
+          org.gradle.workers.max=2
+          EOF
 
       - name: 🔨 Build Android APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: ./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a --no-daemon --stacktrace
 
       - name: 📋 Show Error Logs if Build Fails
         if: failure()
