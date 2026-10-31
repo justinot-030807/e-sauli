@@ -44,6 +44,8 @@ jobs:
 
       - name: 🐘 Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-disabled: true
 
       - name: 📝 Accept Android SDK Licenses
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
@@ -58,7 +60,7 @@ jobs:
         run: |
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
           chmod +x android/gradlew
-          echo "reactNativeArchitectures=arm64-v8a" >> android/gradle.properties
+          sed -i 's/reactNativeArchitectures=.*/reactNativeArchitectures=arm64-v8a/' android/gradle.properties || echo "reactNativeArchitectures=arm64-v8a" >> android/gradle.properties
           echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m" >> android/gradle.properties
           echo "org.gradle.parallel=false" >> android/gradle.properties
           echo "org.gradle.workers.max=2" >> android/gradle.properties
@@ -66,23 +68,23 @@ jobs:
       - name: 🔨 Build Android APK
         working-directory: android
         run: |
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee ../gradle-build.log
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace --no-build-cache 2>&1 | tee ../gradle-build.log
 
-      - name: 🔍 Locate Generated APK Files
+      - name: 🔍 Inspect and Locate APK Files
+        if: always()
         run: |
-          echo "=== LOCATING GENERATED APK FILES ==="
-          find android/app/build/outputs -name "*.apk" || true
-
-      - name: 📋 Publish Diagnostics on Failure
-        if: failure()
-        run: |
-          echo "### ❌ Gradle Build Error Summary" >> $GITHUB_STEP_SUMMARY
+          echo "### 📁 Built Files in android/:" >> $GITHUB_STEP_SUMMARY
           echo '```text' >> $GITHUB_STEP_SUMMARY
-          tail -n 200 gradle-build.log >> $GITHUB_STEP_SUMMARY || true
+          find android -name "*.apk" >> $GITHUB_STEP_SUMMARY || true
+          ls -la android/app/build/outputs/ 2>/dev/null >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "### 🔨 Gradle Build Summary (Last 60 Lines):" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          tail -n 60 gradle-build.log >> $GITHUB_STEP_SUMMARY || true
           echo '```' >> $GITHUB_STEP_SUMMARY
 
-      - name: 📤 Upload Build Log on Failure
-        if: failure()
+      - name: 📤 Upload Build Log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: gradle-build-log
@@ -92,6 +94,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: E-Sauli-LostAndFound-APK
-          path: android/app/build/outputs/**/*.apk
-          if-no-files-found: error
+          path: |
+            android/**/*.apk
+            android/app/build/outputs/**/*.apk
           retention-days: 14
