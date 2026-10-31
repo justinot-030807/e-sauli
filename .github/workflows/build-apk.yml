@@ -74,7 +74,7 @@ jobs:
       - name: 🔨 Build Android APK
         working-directory: android
         run: |
-          ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee ../gradle-build.log
+          ./gradlew assembleRelease --no-daemon --stacktrace --info 2>&1 | tee ../gradle-build.log
 
       - name: 📦 Inspect and Stage Artifacts
         run: |

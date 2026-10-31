@@ -24,6 +24,11 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       }
     },
+    "experiments": {
+      "inlineModules": {
+        "watchedDirectories": []
+      }
+    },
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
