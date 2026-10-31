@@ -16,6 +16,14 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
+      - name: 💾 Increase Swap Space (Prevent Out-Of-Memory)
+        run: |
+          sudo fallocate -l 4G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          free -h
+
       - name: 🟢 Setup Node.js 20
         uses: actions/setup-node@v4
         with:
@@ -41,14 +49,26 @@ jobs:
         env:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://axhytnezkqzjxdzfminl.supabase.co' }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_6AqxgXoeJjg4qEB2Tr_dFA_GPyH7UPr' }}
-        run: npx expo prebuild --platform android --clean
+        run: npx expo prebuild --platform android --clean --no-install
 
-      - name: 🔑 Make Gradlew Executable
-        run: chmod +x android/gradlew
+      - name: 📝 Configure Android Build Environment
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+          chmod +x android/gradlew
+          mkdir -p ~/.gradle
+          echo "org.gradle.jvmargs=-Xmx2560m -XX:MaxMetaspaceSize=512m" >> ~/.gradle/gradle.properties
+          echo "org.gradle.parallel=false" >> ~/.gradle/gradle.properties
+          echo "org.gradle.workers.max=2" >> ~/.gradle/gradle.properties
 
       - name: 🔨 Build Android APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: 📋 Show Error Logs if Build Fails
+        if: failure()
+        run: |
+          echo "=== GRADLE BUILD FAILURE DIAGNOSTICS ==="
+          find android -name "*.log" -exec cat {} + || true
 
       - name: 📤 Upload APK Artifact
         uses: actions/upload-artifact@v4
