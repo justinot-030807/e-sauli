@@ -7,6 +7,9 @@ on:
       - main
       - master
 
+permissions:
+  contents: write
+
 env:
   EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://axhytnezkqzjxdzfminl.supabase.co' }}
   EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_6AqxgXoeJjg4qEB2Tr_dFA_GPyH7UPr' }}
@@ -19,6 +22,8 @@ jobs:
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: 💾 Increase Swap Space (Prevent Out-Of-Memory)
         uses: pierotofy/set-swap-space@master
@@ -65,23 +70,40 @@ jobs:
           echo "org.gradle.parallel=false" >> android/gradle.properties
           echo "org.gradle.workers.max=2" >> android/gradle.properties
 
-      - name: 🔨 Build Android Standalone APK (assembleRelease)
+      - name: 🔨 Build Android APK
         working-directory: android
         run: |
           ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee ../gradle-build.log
 
-      - name: 📦 Locate and Stage Artifacts
+      - name: 📦 Inspect and Stage Artifacts
         run: |
-          echo "=== FULL GRADLE BUILD LOG ==="
-          cat gradle-build.log || true
           mkdir -p apk-output
-          echo "=== SEARCHING FOR ALL BUILT FILES IN outputs/ ==="
-          find android/app/build/outputs -type f -ls || true
-          find android/app/build/outputs -type f \( -name "*.apk" -o -name "*.aab" \) -exec cp -v {} apk-output/ \; || true
-          echo "=== STAGED ARTIFACTS IN apk-output/ ==="
-          ls -la apk-output/
+          echo "=== SEARCHING WORKSPACE FOR APK FILES ==="
+          find . -name "*.apk" -ls || true
+          find . -name "*.apk" -exec cp -v {} apk-output/ \; || true
+          echo "=== SEARCHING WORKSPACE FOR AAB FILES ==="
+          find . -name "*.aab" -ls || true
+          find . -name "*.aab" -exec cp -v {} apk-output/ \; || true
+          echo "=== ALL BUILD OUTPUTS ==="
+          ls -laR android/app/build/outputs/ || true
 
-      - name: 📤 Upload Build Log
+      - name: 🚀 Push APK and Logs to apk-build Branch
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mkdir -p /tmp/publish
+          cp -v gradle-build.log /tmp/publish/build.log || true
+          cp -v apk-output/* /tmp/publish/ 2>/dev/null || true
+          git checkout --orphan apk-build
+          git rm -rf . || true
+          cp -v /tmp/publish/* ./ 2>/dev/null || true
+          ls -la
+          git add -A
+          git commit -m "build: publish build artifacts and logs [skip ci]" || true
+          git push -f origin apk-build || true
+
+      - name: 📤 Upload Build Log Artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -89,6 +111,7 @@ jobs:
           path: gradle-build.log
 
       - name: 📤 Upload APK Artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: E-Sauli-LostAndFound-APK
