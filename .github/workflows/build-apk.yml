@@ -7,6 +7,10 @@ on:
       - main
       - master
 
+env:
+  EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://axhytnezkqzjxdzfminl.supabase.co' }}
+  EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_6AqxgXoeJjg4qEB2Tr_dFA_GPyH7UPr' }}
+
 jobs:
   build:
     name: Build Android APK
@@ -20,6 +24,11 @@ jobs:
         uses: pierotofy/set-swap-space@master
         with:
           swap-size-gb: 10
+
+      - name: 🔐 Setup Environment Variables (.env)
+        run: |
+          echo "EXPO_PUBLIC_SUPABASE_URL=${EXPO_PUBLIC_SUPABASE_URL}" > .env
+          echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${EXPO_PUBLIC_SUPABASE_ANON_KEY}" >> .env
 
       - name: 🟢 Setup Node.js 20
         uses: actions/setup-node@v4
@@ -43,31 +52,36 @@ jobs:
         run: npm install
 
       - name: ⚙️ Generate Native Android Project (Expo Prebuild)
-        env:
-          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://axhytnezkqzjxdzfminl.supabase.co' }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_6AqxgXoeJjg4qEB2Tr_dFA_GPyH7UPr' }}
         run: npx expo prebuild --platform android --clean --no-install
 
       - name: 📝 Configure Android Build Environment
         run: |
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
           chmod +x android/gradlew
-          mkdir -p ~/.gradle
-          cat << 'EOF' > ~/.gradle/gradle.properties
-          org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m
-          org.gradle.parallel=false
-          org.gradle.workers.max=2
-          EOF
+          echo "reactNativeArchitectures=arm64-v8a" >> android/gradle.properties
+          echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m" >> android/gradle.properties
+          echo "org.gradle.parallel=false" >> android/gradle.properties
+          echo "org.gradle.workers.max=2" >> android/gradle.properties
 
       - name: 🔨 Build Android APK
         working-directory: android
-        run: ./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a --no-daemon --stacktrace
+        run: |
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee ../gradle-build.log
 
-      - name: 📋 Show Error Logs if Build Fails
+      - name: 📋 Publish Diagnostics on Failure
         if: failure()
         run: |
-          echo "=== GRADLE BUILD FAILURE DIAGNOSTICS ==="
-          find android -name "*.log" -exec cat {} + || true
+          echo "### ❌ Gradle Build Error Summary" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          tail -n 200 gradle-build.log >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: 📤 Upload Build Log on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-build-log
+          path: gradle-build.log
 
       - name: 📤 Upload APK Artifact
         uses: actions/upload-artifact@v4
