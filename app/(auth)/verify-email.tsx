@@ -27,7 +27,7 @@ export default function VerifyEmailScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        <Text style={[styles.emoji]}>📧</Text>
+        
         <Text style={[styles.title, { color: theme.text }]}>Verify Your Email</Text>
         <Text style={[styles.description, { color: theme.textSecondary }]}>
           We've sent a verification link to:

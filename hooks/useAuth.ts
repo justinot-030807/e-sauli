@@ -2,10 +2,16 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Session, User } from '@supabase/supabase-js';
 import type { Profile } from '@/types/database';
+import {
+  getStoredLocalSession,
+  onLocalAuthChange,
+  setStoredLocalSession,
+  type LocalSessionData,
+} from '@/services/auth';
 
 interface AuthState {
   session: Session | null;
-  user: User | null;
+  user: User | { id: string; email?: string } | null;
   profile: Profile | null;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -16,32 +22,16 @@ interface AuthState {
 }
 
 export function useAuth() {
-  const defaultProfile: Profile = {
-    id: '00000000-0000-0000-0000-000000000002',
-    full_name: 'Maria Santos',
-    student_id: '2023-10021',
-    nickname: 'MariaS',
-    college: 'College of Information and Computing Sciences',
-    role: 'student',
-    approval_status: 'approved',
-    consent_accepted_at: new Date().toISOString(),
-    points: 245,
-    returns_count: 12,
-    is_suspended: false,
-    created_at: new Date().toISOString(),
-    deleted_at: null,
-  };
-
   const [state, setState] = useState<AuthState>({
-    session: { access_token: 'active_session', user: { id: defaultProfile.id } } as any,
-    user: { id: defaultProfile.id, email: 'maria@marsu.edu.ph' } as any,
-    profile: defaultProfile,
-    isLoading: false,
-    isAuthenticated: true,
-    isApproved: true,
+    session: null,
+    user: null,
+    profile: null,
+    isLoading: true,
+    isAuthenticated: false,
+    isApproved: false,
     isAdmin: false,
     isSuspended: false,
-    hasConsented: true,
+    hasConsented: false,
   });
 
   const fetchProfile = useCallback(async (userId: string) => {
@@ -56,13 +46,28 @@ export function useAuth() {
       if (error) throw error;
       return data as Profile;
     } catch (err) {
-      console.error('Error fetching profile:', err);
+      console.warn('Error fetching profile from Supabase:', err);
       return null;
     }
   }, []);
 
   const refreshProfile = useCallback(async () => {
     if (!state.user) return;
+
+    // Check local session first
+    const local = await getStoredLocalSession();
+    if (local && local.user.id === state.user.id) {
+      setState((prev) => ({
+        ...prev,
+        profile: local.profile,
+        isApproved: local.profile.approval_status === 'approved',
+        isAdmin: local.profile.role === 'admin',
+        isSuspended: local.profile.is_suspended,
+        hasConsented: !!local.profile.consent_accepted_at,
+      }));
+      return;
+    }
+
     const profile = await fetchProfile(state.user.id);
     if (profile) {
       setState((prev) => ({
@@ -77,8 +82,82 @@ export function useAuth() {
   }, [state.user, fetchProfile]);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    let isMounted = true;
+
+    // 1. Initial check: Supabase or Local Stored Session
+    async function initAuth() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const profile = await fetchProfile(session.user.id);
+          if (isMounted) {
+            setState({
+              session,
+              user: session.user,
+              profile,
+              isLoading: false,
+              isAuthenticated: true,
+              isApproved: profile?.approval_status === 'approved',
+              isAdmin: profile?.role === 'admin',
+              isSuspended: profile?.is_suspended ?? false,
+              hasConsented: !!profile?.consent_accepted_at,
+            });
+          }
+          return;
+        }
+
+        const local = await getStoredLocalSession();
+        if (local && isMounted) {
+          setState({
+            session: null,
+            user: local.user,
+            profile: local.profile,
+            isLoading: false,
+            isAuthenticated: true,
+            isApproved: local.profile.approval_status === 'approved',
+            isAdmin: local.profile.role === 'admin',
+            isSuspended: local.profile.is_suspended ?? false,
+            hasConsented: !!local.profile.consent_accepted_at,
+          });
+          return;
+        }
+
+        if (isMounted) {
+          setState({
+            session: null,
+            user: null,
+            profile: null,
+            isLoading: false,
+            isAuthenticated: false,
+            isApproved: false,
+            isAdmin: false,
+            isSuspended: false,
+            hasConsented: false,
+          });
+        }
+      } catch (err) {
+        console.warn('Error during initAuth:', err);
+        if (isMounted) {
+          setState({
+            session: null,
+            user: null,
+            profile: null,
+            isLoading: false,
+            isAuthenticated: false,
+            isApproved: false,
+            isAdmin: false,
+            isSuspended: false,
+            hasConsented: false,
+          });
+        }
+      }
+    }
+
+    initAuth();
+
+    // 2. Listen to Supabase auth events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
       if (session?.user) {
         const profile = await fetchProfile(session.user.id);
         setState({
@@ -93,26 +172,49 @@ export function useAuth() {
           hasConsented: !!profile?.consent_accepted_at,
         });
       } else {
-        setState((prev) => ({ ...prev, isLoading: false }));
+        const local = await getStoredLocalSession();
+        if (local) {
+          setState({
+            session: null,
+            user: local.user,
+            profile: local.profile,
+            isLoading: false,
+            isAuthenticated: true,
+            isApproved: local.profile.approval_status === 'approved',
+            isAdmin: local.profile.role === 'admin',
+            isSuspended: local.profile.is_suspended ?? false,
+            hasConsented: !!local.profile.consent_accepted_at,
+          });
+        } else {
+          setState({
+            session: null,
+            user: null,
+            profile: null,
+            isLoading: false,
+            isAuthenticated: false,
+            isApproved: false,
+            isAdmin: false,
+            isSuspended: false,
+            hasConsented: false,
+          });
+        }
       }
     });
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        const profile = await fetchProfile(session.user.id);
+    // 3. Listen to Local Session events (e.g. 1-Tap Demo sign-in / sign-out)
+    const unsubLocal = onLocalAuthChange((localSession) => {
+      if (!isMounted) return;
+      if (localSession) {
         setState({
-          session,
-          user: session.user,
-          profile,
+          session: null,
+          user: localSession.user,
+          profile: localSession.profile,
           isLoading: false,
           isAuthenticated: true,
-          isApproved: profile?.approval_status === 'approved',
-          isAdmin: profile?.role === 'admin',
-          isSuspended: profile?.is_suspended ?? false,
-          hasConsented: !!profile?.consent_accepted_at,
+          isApproved: localSession.profile.approval_status === 'approved',
+          isAdmin: localSession.profile.role === 'admin',
+          isSuspended: localSession.profile.is_suspended ?? false,
+          hasConsented: !!localSession.profile.consent_accepted_at,
         });
       } else {
         setState({
@@ -130,7 +232,9 @@ export function useAuth() {
     });
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
+      unsubLocal();
     };
   }, [fetchProfile]);
 

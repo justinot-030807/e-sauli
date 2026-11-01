@@ -120,7 +120,7 @@ export default function DisputeScreen() {
 
       {/* Warning Alert Card */}
       <View style={styles.warningCard}>
-        <Text style={{ fontSize: 24 }}>⚠️</Text>
+        
         <View style={styles.warningTextContainer}>
           <Text style={styles.warningTitle}>Proteksyon ng Mag-aaral</Text>
           <Text style={styles.warningDescription}>
@@ -148,7 +148,7 @@ export default function DisputeScreen() {
               onPress={() => setSelectedReason(reason)}
               activeOpacity={0.7}
             >
-              <Text style={{ fontSize: 16 }}>{isSelected ? '🔘' : '⚪'}</Text>
+              <Text style={{ fontSize: 16 }}>{isSelected ? '[x]' : '[ ]'}</Text>
               <Text style={[styles.reasonText, isSelected && styles.reasonTextSelected]}>
                 {reason}
               </Text>
@@ -188,7 +188,7 @@ export default function DisputeScreen() {
           <ActivityIndicator color="#FFFFFF" />
         ) : (
           <>
-            <Text style={{ fontSize: 16 }}>📨</Text>
+            
             <Text style={styles.submitButtonText}>Isumite ang Dispute sa Admin</Text>
           </>
         )}

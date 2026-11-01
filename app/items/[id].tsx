@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/useTheme';
 import { Spacing, FontSize, BorderRadius } from '@/constants/theme';
 import { CATEGORY_ICONS, type ItemCategory } from '@/constants/categories';
@@ -178,7 +179,7 @@ export default function ItemDetailScreen() {
 
   const { item, officeSettings, isOwner } = detail;
   const isLost = item.type === 'lost';
-  const categoryIcon = CATEGORY_ICONS[item.category as ItemCategory] || '📦';
+  const categoryIcon = CATEGORY_ICONS[item.category as ItemCategory] || 'cube-outline';
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -193,7 +194,7 @@ export default function ItemDetailScreen() {
               onPress={() => setShowReportModal(true)}
               style={styles.headerRightBtn}
             >
-              <Text style={styles.headerRightIcon}>🚩</Text>
+              <Ionicons name="flag-outline" size={20} color="#FFFFFF" />
             </TouchableOpacity>
           ),
         }}
@@ -265,21 +266,21 @@ export default function ItemDetailScreen() {
               { backgroundColor: '#FFF9E6', borderColor: '#E3B23C' },
             ]}
           >
-            <Text style={styles.officeCardTitle}>🏢 Sa Opisina Lamang Kukunin</Text>
+            <Text style={styles.officeCardTitle}>Sa Opisina Lamang Kukunin</Text>
             <Text style={styles.officeCardBody}>
               Dahil ito ay sensitibong gamit ({item.category}), kailangan itong kunin nang
               personal sa Campus Lost & Found Office upang maiwasan ang maling pag-claim.
             </Text>
             {officeSettings && (
               <View style={styles.officeHoursBox}>
-                <Text style={styles.officeHoursTitle}>📍 {officeSettings.office_name}</Text>
+                <Text style={styles.officeHoursTitle}>{officeSettings.office_name}</Text>
                 <Text style={styles.officeHoursText}>
-                  🕒 {officeSettings.open_time} - {officeSettings.close_time} (
+                  {officeSettings.open_time} - {officeSettings.close_time} (
                   {officeSettings.open_days.join(', ')})
                 </Text>
                 {officeSettings.location_note && (
                   <Text style={styles.officeHoursText}>
-                    🏢 {officeSettings.location_note}
+                    {officeSettings.location_note}
                   </Text>
                 )}
               </View>
@@ -300,18 +301,18 @@ export default function ItemDetailScreen() {
 
           <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Lokasyon sa Campus</Text>
-            <Text style={[styles.infoValue, { color: theme.text }]}>📍 {item.location}</Text>
+            <Text style={[styles.infoValue, { color: theme.text }]}>{item.location}</Text>
           </View>
 
           <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Petsa</Text>
-            <Text style={[styles.infoValue, { color: theme.text }]}>📅 {item.date_happened}</Text>
+            <Text style={[styles.infoValue, { color: theme.text }]}>{item.date_happened}</Text>
           </View>
 
           <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Nag-post</Text>
             <Text style={[styles.infoValue, { color: theme.text }]}>
-              👤 {item.posterNickname} ({item.posterCollege})
+              Poster: {item.posterNickname} ({item.posterCollege})
             </Text>
           </View>
         </View>
@@ -320,7 +321,7 @@ export default function ItemDetailScreen() {
         <View style={styles.actionContainer}>
           {item.status === 'returned' ? (
             <View style={[styles.statusCard, { backgroundColor: '#E8F5E9', borderColor: '#4CAF50' }]}>
-              <Text style={{ fontSize: 28, textAlign: 'center', marginBottom: 6 }}>🎉</Text>
+              <Text style={{ fontSize: 28, textAlign: 'center', marginBottom: 6 }}></Text>
               <Text style={[styles.statusCardTitle, { color: '#2E7D32', textAlign: 'center' }]}>
                 Matagumpay na Naisauli (Returned)
               </Text>
@@ -357,7 +358,7 @@ export default function ItemDetailScreen() {
                     activeOpacity={0.85}
                   >
                     <Text style={[styles.primaryActionBtnText, { color: '#3A0C14' }]}>
-                      ✨ Kumpirmahin ang Pagkakatanggap (+5 Pts)
+                      Kumpirmahin ang Pagkakatanggap (+5 Pts)
                     </Text>
                   </TouchableOpacity>
 
@@ -366,7 +367,7 @@ export default function ItemDetailScreen() {
                     onPress={() => router.push({ pathname: '/items/dispute', params: { id: item.id } })}
                   >
                     <Text style={{ color: '#C62828', fontWeight: '700', fontSize: 14 }}>
-                      ⚠️ May problema ba? Maghain ng Dispute
+                      May problema ba? Maghain ng Dispute
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -381,7 +382,7 @@ export default function ItemDetailScreen() {
           ) : item.status === 'verified' ? (
             <View>
               <View style={[styles.statusCard, { backgroundColor: '#E3F2FD', borderColor: '#2196F3', marginBottom: 12 }]}>
-                <Text style={[styles.statusCardTitle, { color: '#1565C0' }]}>✅ Na-verify na ang Claim</Text>
+                <Text style={[styles.statusCardTitle, { color: '#1565C0' }]}>Na-verify na ang Claim</Text>
                 <Text style={[styles.statusCardBody, { color: '#0D47A1' }]}>
                   Naaprubahan ang claim at handa na para sa pagsasauli ng gamit.
                 </Text>
@@ -399,7 +400,7 @@ export default function ItemDetailScreen() {
                     ]}
                   >
                     <Text style={{ fontSize: 13, fontWeight: '700', color: officeStatus?.isOpen ? '#2E7D32' : '#C62828' }}>
-                      {officeStatus?.isOpen ? '🟢 BUKAS ANG OPISINA' : '🔴 SARADO ANG OPISINA'}
+                      {officeStatus?.isOpen ? 'BUKAS ANG OPISINA' : 'SARADO ANG OPISINA'}
                     </Text>
                     <Text style={{ fontSize: 12, color: '#555', marginTop: 2 }}>{officeStatus?.message}</Text>
                   </View>
@@ -418,13 +419,13 @@ export default function ItemDetailScreen() {
                       {isActionLoading ? (
                         <ActivityIndicator color="#FFFFFF" />
                       ) : (
-                        <Text style={styles.primaryActionBtnText}>🏢 I-release sa Opisina (Admin)</Text>
+                        <Text style={styles.primaryActionBtnText}>I-release sa Opisina (Admin)</Text>
                       )}
                     </TouchableOpacity>
                   ) : (
                     <View style={[styles.noteBox, { marginTop: 12, backgroundColor: '#FFF9E6', borderColor: '#E3B23C' }]}>
                       <Text style={{ color: '#8F6600', fontSize: 13, textAlign: 'center', lineHeight: 18 }}>
-                        🔒 Ang administrator sa Lost & Found Office lamang ang maaaring mag-release ng item na ito habang bukas ang opisina.
+                        Ang administrator sa Lost & Found Office lamang ang maaaring mag-release ng item na ito habang bukas ang opisina.
                       </Text>
                     </View>
                   )}
@@ -440,7 +441,7 @@ export default function ItemDetailScreen() {
                     {isActionLoading ? (
                       <ActivityIndicator color="#FFFFFF" />
                     ) : (
-                      <Text style={styles.primaryActionBtnText}>🤝 Markahan bilang Naisauli / Released</Text>
+                      <Text style={styles.primaryActionBtnText}>Markahan bilang Naisauli / Released</Text>
                     )}
                   </TouchableOpacity>
                 ) : null
@@ -472,7 +473,7 @@ export default function ItemDetailScreen() {
                     >
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.claimRowName, { color: theme.text }]}>
-                          👤 {cl.claimantNickname}
+                          Poster: {cl.claimantNickname}
                         </Text>
                         <Text style={[styles.claimRowStatus, { color: theme.textSecondary }]}>
                           Katayuan: {cl.status.toUpperCase()}
@@ -490,7 +491,7 @@ export default function ItemDetailScreen() {
               onPress={() => setShowContactModal(true)}
               activeOpacity={0.85}
             >
-              <Text style={styles.primaryActionBtnText}>🤝 Nahanap Ko Ito</Text>
+              <Text style={styles.primaryActionBtnText}>Nahanap Ko Ito</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
@@ -503,7 +504,7 @@ export default function ItemDetailScreen() {
               }
               activeOpacity={0.85}
             >
-              <Text style={styles.primaryActionBtnText}>✨ I-claim ang Gamit</Text>
+              <Text style={styles.primaryActionBtnText}>I-claim ang Gamit</Text>
             </TouchableOpacity>
           )}
         </View>

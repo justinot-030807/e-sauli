@@ -121,7 +121,7 @@ export default function CreateClaimScreen() {
   }
 
   const isCash = item.category === 'Cash';
-  const categoryIcon = CATEGORY_ICONS[item.category as ItemCategory] || '📦';
+  const categoryIcon = CATEGORY_ICONS[item.category as ItemCategory] || 'cube-outline';
 
   return (
     <KeyboardAvoidingView
@@ -146,14 +146,14 @@ export default function CreateClaimScreen() {
               {item.title}
             </Text>
             <Text style={[styles.summaryMeta, { color: theme.textSecondary }]}>
-              📍 {item.location} • 📅 {item.date_happened}
+              {item.location} • {item.date_happened}
             </Text>
           </View>
         </View>
 
         {/* Lockout Warning Banner */}
         <View style={[styles.warningBox, { backgroundColor: '#FFF9E6', borderColor: '#E3B23C' }]}>
-          <Text style={styles.warningTitle}>⚠️ Paalala sa Pag-verify (3 Pagsubok)</Text>
+          <Text style={styles.warningTitle}>Paalala sa Pag-verify (3 Pagsubok)</Text>
           <Text style={styles.warningText}>
             Upang maiwasan ang panlilinlang, mayroon kang hanggang 3 pagsubok lamang upang sagutan
             ang mga verification tanong. Kapag nagkamali ng tatlong beses, mai-lock ang automated verification.
@@ -190,7 +190,7 @@ export default function CreateClaimScreen() {
           <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Lihim na Tanong ng Nag-post *</Text>
             <Text style={[styles.questionText, { color: theme.primary }]}>
-              ❓ {questions[0].question}
+              Tanong: {questions[0].question}
             </Text>
             <TextInput
               style={[

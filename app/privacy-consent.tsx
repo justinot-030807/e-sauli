@@ -15,27 +15,27 @@ import { Spacing, FontSize, BorderRadius } from '@/constants/theme';
 
 const PRIVACY_SECTIONS = [
   {
-    title: '📋 What We Collect',
+    title: 'What We Collect',
     body: 'We collect your full name, student ID, nickname, college, and email address when you register. When you post items, we collect titles, descriptions, categories, locations, dates, and optional photos.',
   },
   {
-    title: '🎯 Why We Collect It',
+    title: 'Why We Collect It',
     body: 'Your information helps us verify your identity as an enrolled student, connect lost items with their owners, and maintain a safe community. Your student ID and full name are used only for verification and are never shown publicly.',
   },
   {
-    title: '🔒 How We Protect It',
+    title: 'How We Protect It',
     body: 'Your data is stored securely in our database with Row-Level Security. Sensitive information like cash amounts is encrypted. Photos are stored in private buckets accessible only through secure, time-limited URLs.',
   },
   {
-    title: '👥 Who Can See Your Data',
+    title: 'Who Can See Your Data',
     body: 'Only your nickname and college are visible to other users. Your full name and student ID are visible only to you and authorized administrators. Admins access private data only for moderation and verification purposes.',
   },
   {
-    title: '📦 Lost & Found Data',
+    title: 'Lost & Found Data',
     body: 'Item posts are visible to all registered users. Sensitive categories (Cash, Wallet, ID/Cards) have additional privacy protections — exact amounts and personal details are never shown publicly. Claim conversations are private between the claimant, item poster, and admins.',
   },
   {
-    title: '🗑️ Account Deletion',
+    title: 'Account Deletion',
     body: 'You can request account and data deletion at any time from your profile settings. Your personal information will be removed or anonymized. Minimal audit records may be retained for transaction integrity.',
   },
 ];

@@ -11,12 +11,14 @@ import {
   RefreshControl,
 } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { signOut } from '@/services/auth';
 import { fetchUserBadges, UserBadgeWithDetail } from '@/services/badges';
 import { supabase } from '@/lib/supabase';
 import type { Item } from '@/types/database';
 import { CATEGORY_ICONS, ItemCategory } from '@/constants/categories';
+import { LOCAL_ITEMS } from '@/services/items';
 
 export default function ProfileScreen() {
   const { profile, user, refreshProfile } = useAuthContext();
@@ -43,16 +45,27 @@ export default function ProfileScreen() {
       setBadges(userBadges);
 
       // 2. Load my items
-      const { data: items, error: itemsError } = await supabase
-        .from('items')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      let items: Item[] = [];
+      try {
+        const { data: remoteItems, error: itemsError } = await supabase
+          .from('items')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
 
-      if (!itemsError && items) {
-        setMyItems(items);
-        setPostsCount(items.length);
+        if (!itemsError && remoteItems && remoteItems.length > 0) {
+          items = remoteItems;
+        }
+      } catch (err) {
+        // ignore
       }
+
+      if (items.length === 0) {
+        items = LOCAL_ITEMS.filter((it) => it.user_id === user.id);
+      }
+
+      setMyItems(items);
+      setPostsCount(items.length);
     } catch (err) {
       console.error('Error loading profile data:', err);
     } finally {
@@ -166,11 +179,11 @@ export default function ProfileScreen() {
 
         <View style={styles.badgeRow}>
           <View style={styles.verifiedChip}>
-            <Text style={styles.verifiedText}>✓ Verified Student</Text>
+            <Text style={styles.verifiedText}>Verified Student</Text>
           </View>
           <View style={[styles.roleChip, profile.role === 'admin' && styles.adminChip]}>
             <Text style={[styles.roleText, profile.role === 'admin' && styles.adminText]}>
-              {profile.role === 'admin' ? '👑 Admin' : '🎓 Mag-aaral'}
+              {profile.role === 'admin' ? 'Admin' : 'Mag-aaral'}
             </Text>
           </View>
         </View>
@@ -219,7 +232,12 @@ export default function ProfileScreen() {
                   }}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.badgeChipIcon}>{badge.icon}</Text>
+                  <Ionicons
+                    name={(badge.icon as any) || 'ribbon-outline'}
+                    size={16}
+                    color={isEarned ? '#8A1F2E' : '#999999'}
+                    style={{ marginRight: 6 }}
+                  />
                   <Text
                     style={[styles.badgeChipText, isEarned ? styles.badgeChipTextEarned : styles.badgeChipTextLocked]}
                   >
@@ -263,7 +281,7 @@ export default function ProfileScreen() {
         ) : (
           filteredItems.map((item) => {
             const isLost = item.type === 'lost';
-            const icon = CATEGORY_ICONS[item.category as ItemCategory] || '📦';
+            const icon = CATEGORY_ICONS[item.category as ItemCategory] || 'cube-outline';
             return (
               <TouchableOpacity
                 key={item.id}
@@ -272,7 +290,7 @@ export default function ProfileScreen() {
                 activeOpacity={0.7}
               >
                 <View style={[styles.postItemIconBox, { backgroundColor: isLost ? '#FBE6E8' : '#E3F1E7' }]}>
-                  <Text style={{ fontSize: 22 }}>{icon}</Text>
+                  <Ionicons name={icon as any} size={22} color={isLost ? '#8A1F2E' : '#1E5B32'} />
                 </View>
 
                 <View style={styles.postItemInfo}>
@@ -289,7 +307,7 @@ export default function ProfileScreen() {
                   </View>
 
                   <Text style={styles.postItemTitle} numberOfLines={1}>{item.title}</Text>
-                  <Text style={styles.postItemSubtext}>📍 {item.location} • 📅 {item.date_happened}</Text>
+                  <Text style={styles.postItemSubtext}>{item.location} • {item.date_happened}</Text>
                 </View>
 
                 <View style={styles.viewButton}>
@@ -305,7 +323,7 @@ export default function ProfileScreen() {
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>Impormasyon ng Account</Text>
         <Text style={styles.privacyNotice}>
-          🔒 Ang iyong buong pangalan at student ID ay pribado at hindi kailanman ibinubunyag sa ibang mag-aaral o sa leaderboard.
+          Ang iyong buong pangalan at student ID ay pribado at hindi kailanman ibinubunyag sa ibang mag-aaral o sa leaderboard.
         </Text>
 
         <View style={styles.infoRow}>
@@ -338,7 +356,8 @@ export default function ProfileScreen() {
           onPress={() => router.push('/admin')}
           activeOpacity={0.85}
         >
-          <Text style={styles.adminButtonText}>🛡️ Buksan ang Admin Dashboard</Text>
+          <Ionicons name="shield-checkmark-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+          <Text style={styles.adminButtonText}>Buksan ang Admin Dashboard</Text>
         </TouchableOpacity>
       )}
 
@@ -384,7 +403,11 @@ export default function ProfileScreen() {
                 selectedBadge?.isEarned ? styles.modalIconEarned : styles.modalIconLocked,
               ]}
             >
-              <Text style={{ fontSize: 44 }}>{selectedBadge?.icon}</Text>
+              <Ionicons
+                name={(selectedBadge?.icon as any) || 'ribbon-outline'}
+                size={44}
+                color={selectedBadge?.isEarned ? '#8A1F2E' : '#9E9E9E'}
+              />
             </View>
 
             <Text style={styles.modalBadgeTitle}>{selectedBadge?.name}</Text>
@@ -392,15 +415,15 @@ export default function ProfileScreen() {
 
             <View style={styles.modalBadgeStatusBox}>
               <Text style={styles.modalRequirementText}>
-                🎯 Kailangan: {selectedBadge?.requirement} matagumpay na naibalik
+                Kailangan: {selectedBadge?.requirement} matagumpay na naibalik
               </Text>
               {selectedBadge?.isEarned ? (
                 <Text style={styles.modalEarnedStatus}>
-                  ✅ Nakuha na {selectedBadge.earnedAt ? `noong ${new Date(selectedBadge.earnedAt).toLocaleDateString()}` : ''}!
+                  Nakuha na {selectedBadge.earnedAt ? `noong ${new Date(selectedBadge.earnedAt).toLocaleDateString()}` : ''}!
                 </Text>
               ) : (
                 <Text style={styles.modalLockedStatus}>
-                  🔒 Hindi pa nakukuha. Ipagpatuloy ang pagbabalik ng mga gamit!
+                  Hindi pa nakukuha. Ipagpatuloy ang pagbabalik ng mga gamit!
                 </Text>
               )}
             </View>

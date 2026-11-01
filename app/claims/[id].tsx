@@ -163,7 +163,7 @@ export default function ClaimDetailScreen() {
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Inire-report na Gamit</Text>
           <Text style={[styles.itemTitle, { color: theme.text }]}>{claim.item.title}</Text>
           <Text style={[styles.itemMeta, { color: theme.textSecondary }]}>
-            🏷️ {claim.item.category} • 📍 {claim.item.location}
+            Kategorya: {claim.item.category} • Lokasyon: {claim.item.location}
           </Text>
         </View>
 
@@ -171,10 +171,10 @@ export default function ClaimDetailScreen() {
         <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Impormasyon ng Claimant</Text>
           <Text style={[styles.claimantName, { color: theme.text }]}>
-            👤 {claim.claimantNickname}
+            Claimant: {claim.claimantNickname}
           </Text>
           <Text style={[styles.claimantCollege, { color: theme.textSecondary }]}>
-            🏫 Kolehiyo: {claim.claimantCollege}
+            Kolehiyo: {claim.claimantCollege}
           </Text>
         </View>
 
@@ -197,7 +197,7 @@ export default function ClaimDetailScreen() {
           }
           activeOpacity={0.85}
         >
-          <Text style={styles.chatButtonText}>💬 Buksan ang Chat / Komunikasyon</Text>
+          <Text style={styles.chatButtonText}>Buksan ang Chat / Komunikasyon</Text>
         </TouchableOpacity>
 
         {/* Finder Approval / Rejection Controls */}

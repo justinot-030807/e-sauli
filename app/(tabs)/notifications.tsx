@@ -8,6 +8,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/useTheme';
 import { Spacing, FontSize, BorderRadius } from '@/constants/theme';
 import {
@@ -99,21 +100,21 @@ export default function NotificationsScreen() {
   const getNotificationIcon = (type: string): string => {
     switch (type) {
       case 'claim_received':
-        return '📥';
+        return 'mail-outline';
       case 'claim_approved':
-        return '🎉';
+        return 'ribbon-outline';
       case 'claim_rejected':
-        return '❌';
+        return 'close-circle-outline';
       case 'claim_lockout':
-        return '🔒';
+        return 'lock-closed-outline';
       case 'new_message':
-        return '💬';
+        return 'chatbubble-outline';
       case 'possible_match':
-        return '🔍';
+        return 'search-outline';
       case 'item_expired':
-        return '⏰';
+        return 'time-outline';
       default:
-        return '🔔';
+        return 'notifications-outline';
     }
   };
 
@@ -191,7 +192,11 @@ export default function NotificationsScreen() {
                   },
                 ]}
               >
-                <Text style={styles.iconEmoji}>{icon}</Text>
+                <Ionicons
+                  name={icon as any}
+                  size={20}
+                  color={isUnread ? theme.primary : theme.textSecondary}
+                />
               </View>
 
               <View style={styles.contentContainer}>
@@ -224,7 +229,7 @@ export default function NotificationsScreen() {
         }}
         ListEmptyComponent={
           <EmptyView
-            emoji="🔕"
+            iconName="notifications-off-outline"
             title="Walang mga abiso"
             description="Walang bagong aktibidad o mensahe sa iyong account."
           />

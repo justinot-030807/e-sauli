@@ -7,6 +7,11 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "scheme": "esauli-lf",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#7a1f2b"
+    },
     "plugins": [
       "expo-router",
       "expo-secure-store"
@@ -19,9 +24,7 @@
       "package": "com.esauli.lostandfound",
       "adaptiveIcon": {
         "backgroundColor": "#7a1f2b",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/android-icon-foreground.png"
       }
     },
     "experiments": {

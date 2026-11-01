@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { signUp } from '@/services/auth';
@@ -64,7 +65,7 @@ export default function RegisterScreen() {
         nickname: form.nickname.trim(),
         college: form.college,
       });
-      router.replace({ pathname: '/(auth)/verify-email', params: { email: form.email.trim() } });
+      router.replace('/(tabs)');
     } catch (err: any) {
       setError(err?.message || 'Registration failed. Please try again.');
     } finally {
@@ -82,6 +83,11 @@ export default function RegisterScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
+          <Image
+            source={require('@/assets/logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <Text style={[styles.title, { color: theme.primary }]}>Create Account</Text>
           <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
             Sumali sa E-Sauli Lost & Found community
@@ -222,6 +228,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { flexGrow: 1, padding: Spacing.lg, paddingTop: Spacing.xxl },
   header: { alignItems: 'center', marginBottom: Spacing.lg },
+  logo: { width: 80, height: 80, borderRadius: 40, marginBottom: Spacing.sm },
   title: { fontSize: FontSize.xxl, fontWeight: '800' },
   subtitle: { fontSize: FontSize.sm, marginTop: Spacing.xs, textAlign: 'center' },
   card: { borderRadius: BorderRadius.lg, padding: Spacing.lg, borderWidth: 1 },

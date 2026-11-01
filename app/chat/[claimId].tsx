@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/useTheme';
 import { Spacing, FontSize, BorderRadius } from '@/constants/theme';
 import {
@@ -208,7 +209,7 @@ export default function ClaimChatScreen() {
         }}
         ListEmptyComponent={
           <View style={styles.emptyChat}>
-            <Text style={styles.emptyEmoji}>💬</Text>
+            
             <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
               Simulan ang pag-uusap upang mapagkasunduan ang pagbabalik o turnover ng gamit.
             </Text>
@@ -248,7 +249,7 @@ export default function ClaimChatScreen() {
           {isSending ? (
             <ActivityIndicator color="#ffffff" size="small" />
           ) : (
-            <Text style={styles.sendIcon}>➤</Text>
+            <Ionicons name="send" size={18} color="#FFFFFF" />
           )}
         </TouchableOpacity>
       </View>

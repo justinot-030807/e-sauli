@@ -115,7 +115,7 @@ export default function ConfirmReturnScreen() {
       {/* Header Banner */}
       <View style={styles.headerCard}>
         <View style={styles.iconCircle}>
-          <Text style={{ fontSize: 32 }}>✨</Text>
+          
         </View>
         <Text style={styles.headerTitle}>Natanggap mo na ba ang iyong gamit?</Text>
         <Text style={styles.headerSubtitle}>
@@ -147,7 +147,7 @@ export default function ConfirmReturnScreen() {
       {/* Thank You Note Input */}
       <View style={styles.formCard}>
         <View style={styles.noteHeader}>
-          <Text style={{ fontSize: 18 }}>❤️</Text>
+          
           <Text style={styles.sectionTitle}>Mensahe ng Pasasalamat (Opsyonal)</Text>
         </View>
         <Text style={styles.helperText}>
@@ -178,7 +178,7 @@ export default function ConfirmReturnScreen() {
           <ActivityIndicator color="#3A0C14" />
         ) : (
           <>
-            <Text style={{ fontSize: 18 }}>✅</Text>
+            
             <Text style={styles.primaryButtonText}>Kumpirmahin ang Pagkakatanggap</Text>
           </>
         )}
@@ -190,7 +190,7 @@ export default function ConfirmReturnScreen() {
         onPress={navigateToDispute}
         activeOpacity={0.7}
       >
-        <Text style={{ fontSize: 16 }}>⚠️</Text>
+        
         <Text style={styles.disputeButtonText}>May problema ba? Maghain ng Dispute</Text>
       </TouchableOpacity>
 
@@ -204,7 +204,7 @@ export default function ConfirmReturnScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.celebrationBadge}>
-              <Text style={{ fontSize: 44 }}>🏆</Text>
+              
             </View>
 
             <Text style={styles.modalTitle}>Matagumpay na Naisauli!</Text>
@@ -235,7 +235,7 @@ export default function ConfirmReturnScreen() {
 
               {(result?.thankYouBonus || 0) > 0 && (
                 <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>❤️ Thank You Note Bonus:</Text>
+                  <Text style={styles.breakdownLabel}>Thank You Note Bonus:</Text>
                   <Text style={styles.breakdownValue}>+{result?.thankYouBonus} Pts</Text>
                 </View>
               )}

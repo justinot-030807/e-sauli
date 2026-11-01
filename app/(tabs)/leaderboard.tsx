@@ -151,7 +151,7 @@ export default function LeaderboardScreen() {
         <ErrorView message={error} onRetry={loadData} />
       ) : leaderboard.length === 0 ? (
         <EmptyView
-          emoji="🏆"
+          iconName="trophy-outline"
           title="Wala Pang Tala sa Leaderboard"
           description="Maging una sa magsauli ng gamit upang manguna sa ranggo!"
         />

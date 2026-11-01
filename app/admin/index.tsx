@@ -130,7 +130,7 @@ export default function AdminDashboardScreen() {
     return (
       <View style={styles.unauthorizedContainer}>
         <Stack.Screen options={{ title: 'Access Denied', headerShown: true }} />
-        <Text style={{ fontSize: 50, marginBottom: 12 }}>🔒</Text>
+        
         <Text style={styles.unauthorizedTitle}>Walang Pahintulot</Text>
         <Text style={styles.unauthorizedText}>
           Ang screen na ito ay para lamang sa mga administrator ng Lost & Found Office.
@@ -417,12 +417,12 @@ export default function AdminDashboardScreen() {
               style={styles.actionShortcutBtn}
               onPress={() => setShowLockoutModal(true)}
             >
-              <Text style={styles.actionShortcutText}>🔓 Lockout Override</Text>
+              <Text style={styles.actionShortcutText}>Lockout Override</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.cardInfoTitle}>🏢 Mga Item na Kukunin sa Opisina</Text>
+            <Text style={styles.cardInfoTitle}>Mga Item na Kukunin sa Opisina</Text>
             <Text style={styles.cardInfoText}>
               Ang mga item sa kategoryang Cash, Wallet, at ID/Cards ay kailangan i-release nang personal sa opisina habang bukas.
             </Text>
