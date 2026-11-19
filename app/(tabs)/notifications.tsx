@@ -50,7 +50,8 @@ export default function NotificationsScreen() {
   }, []);
 
   useEffect(() => {
-    loadNotifications();
+    const frame = requestAnimationFrame(() => { void loadNotifications(); });
+    return () => cancelAnimationFrame(frame);
   }, [loadNotifications]);
 
   // Realtime subscription for incoming notifications
@@ -73,10 +74,14 @@ export default function NotificationsScreen() {
 
   const handlePressNotification = async (notification: Notification) => {
     if (!notification.read) {
-      markNotificationAsRead(notification.id);
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
-      );
+      try {
+        await markNotificationAsRead(notification.id);
+        setNotifications((previous) =>
+          previous.map((row) => (row.id === notification.id ? { ...row, read: true } : row)));
+      } catch {
+        setError('Hindi namarkahan ang abiso. Pakisubukang muli.');
+        return;
+      }
     }
 
     if (notification.item_id) {
@@ -88,8 +93,12 @@ export default function NotificationsScreen() {
   };
 
   const handleMarkAllRead = async () => {
-    await markAllNotificationsAsRead();
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    try {
+      await markAllNotificationsAsRead();
+      setNotifications((previous) => previous.map((row) => ({ ...row, read: true })));
+    } catch {
+      setError('Hindi namarkahan ang mga abiso. Pakisubukang muli.');
+    }
   };
 
   const unreadCount = useMemo(
@@ -99,6 +108,7 @@ export default function NotificationsScreen() {
 
   const getNotificationIcon = (type: string): string => {
     switch (type) {
+      case 'claim_requested':
       case 'claim_received':
         return 'mail-outline';
       case 'claim_approved':

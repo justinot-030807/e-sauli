@@ -1,18 +1,18 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
 import { Spacing, FontSize, BorderRadius } from '@/constants/theme';
 import { fetchClaimDetail, approveClaim, rejectClaim, type ClaimWithMeta } from '@/services/claims';
-import { supabase } from '@/lib/supabase';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { confirmAction } from '@/utils/confirmAction';
 import { LoadingView, ErrorView } from '@/components/StateViews';
 import type { Item } from '@/types/database';
 
@@ -21,19 +21,22 @@ export default function ClaimDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [claim, setClaim] = useState<(ClaimWithMeta & { item: Item }) | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const { user, isAdmin } = useAuthContext();
+  const processing = useRef(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    if (!id) return;
+    if (!id) {
+      setError('Walang napiling claim.');
+      setIsLoading(false);
+      return;
+    }
     try {
       setIsLoading(true);
       setError(null);
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUserId(user?.id || null);
-
       const res = await fetchClaimDetail(id);
       setClaim(res);
     } catch (err: any) {
@@ -45,61 +48,33 @@ export default function ClaimDetailScreen() {
   }, [id]);
 
   useEffect(() => {
-    loadData();
+    const frame = requestAnimationFrame(() => void loadData());
+    return () => cancelAnimationFrame(frame);
   }, [loadData]);
 
-  const handleApprove = () => {
-    if (!id || !claim) return;
-    Alert.alert(
-      'Aprubahan ang Claim?',
-      'Kapag inaprubahan mo ito, awtomatikong matatapos ang ibang nakabinbing claim at magiging "Verified" ang status ng gamit.',
-      [
-        { text: 'Kanselahin', style: 'cancel' },
-        {
-          text: 'Oo, Aprubahan',
-          style: 'default',
-          onPress: async () => {
-            try {
-              setIsProcessing(true);
-              await approveClaim(id);
-              Alert.alert('Naaprubahan!', 'Matagumpay na naaprubahan ang claim.');
-              loadData();
-            } catch (err: any) {
-              Alert.alert('Nagka-aberya', err?.message || 'Hindi naaprubahan ang claim.');
-            } finally {
-              setIsProcessing(false);
-            }
-          },
+  const handleDecision = (approve: boolean) => {
+    if (!id || processing.current) return;
+    confirmAction(approve ? 'Aprubahan ang claim?' : 'Tanggihan ang claim?',
+      approve ? 'Magsasara ang iba pang nakabinbing claim para sa gamit na ito.' : 'Aabisuhan ang nagsumite kapag sinuri ang claim.',
+      {
+        text: approve ? 'Aprubahan' : 'Tanggihan',
+        style: approve ? 'default' : 'destructive',
+        onPress: async () => {
+          if (processing.current) return;
+          processing.current = true;
+          setActionError(null);
+          setIsProcessing(true);
+          try {
+            await (approve ? approveClaim(id) : rejectClaim(id));
+            await loadData();
+          } catch (err) {
+            setActionError(err instanceof Error ? err.message : 'Hindi nabago ang claim.');
+          } finally {
+            setIsProcessing(false);
+            processing.current = false;
+          }
         },
-      ]
-    );
-  };
-
-  const handleReject = () => {
-    if (!id) return;
-    Alert.alert(
-      'Tanggihan ang Claim?',
-      'Sigurado ka bang tatanggihan ang claim na ito?',
-      [
-        { text: 'Kanselahin', style: 'cancel' },
-        {
-          text: 'Tanggihan',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setIsProcessing(true);
-              await rejectClaim(id);
-              Alert.alert('Tinanggihan', 'Tinanggihan ang claim.');
-              loadData();
-            } catch (err: any) {
-              Alert.alert('Nagka-aberya', err?.message || 'Hindi naitanggi ang claim.');
-            } finally {
-              setIsProcessing(false);
-            }
-          },
-        },
-      ]
-    );
+      });
   };
 
   if (isLoading) {
@@ -120,8 +95,8 @@ export default function ClaimDetailScreen() {
     );
   }
 
-  const isFinder = currentUserId === claim.item.user_id;
-  const isClaimant = currentUserId === claim.claimant_id;
+  const isPoster = user?.id === claim.item.user_id;
+  const canApprove = isAdmin || (isPoster && !claim.item.requires_office_pickup);
 
   const statusColors: Record<string, { bg: string; text: string; label: string }> = {
     pending: { bg: '#FFF9E6', text: '#8F6600', label: 'Nakabinbin (Pending)' },
@@ -201,11 +176,12 @@ export default function ClaimDetailScreen() {
         </TouchableOpacity>
 
         {/* Finder Approval / Rejection Controls */}
-        {isFinder && claim.status === 'pending' && (
+        {actionError && <Text accessibilityLiveRegion="polite" style={{ color: theme.text }}>{actionError}</Text>}
+        {(isPoster || isAdmin) && claim.status === 'pending' && (
           <View style={styles.actionRow}>
             <TouchableOpacity
               style={[styles.actionBtn, styles.rejectBtn]}
-              onPress={handleReject}
+              onPress={() => handleDecision(false)}
               disabled={isProcessing}
             >
               {isProcessing ? (
@@ -215,17 +191,19 @@ export default function ClaimDetailScreen() {
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.approveBtn]}
-              onPress={handleApprove}
-              disabled={isProcessing}
-            >
-              {isProcessing ? (
-                <ActivityIndicator color="#ffffff" size="small" />
-              ) : (
-                <Text style={styles.actionBtnText}>✓ Aprubahan</Text>
-              )}
-            </TouchableOpacity>
+            {canApprove && (
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.approveBtn]}
+                onPress={() => handleDecision(true)}
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <ActivityIndicator color="#ffffff" size="small" />
+                ) : (
+                  <Text style={styles.actionBtnText}>✓ Aprubahan</Text>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </ScrollView>

@@ -30,7 +30,7 @@ export default function VerifyEmailScreen() {
         
         <Text style={[styles.title, { color: theme.text }]}>Verify Your Email</Text>
         <Text style={[styles.description, { color: theme.textSecondary }]}>
-          We've sent a verification link to:
+          We&apos;ve sent a verification link to:
         </Text>
         <Text style={[styles.email, { color: theme.primary }]}>{email}</Text>
         <Text style={[styles.description, { color: theme.textSecondary }]}>

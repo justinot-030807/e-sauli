@@ -45,6 +45,7 @@ Deploy the two server-side Edge Functions:
 
 ```bash
 # 1. Cash amount HMAC verification
+# Replaces the legacy verifier on deployments that already host it.
 supabase functions deploy verify-cash-amount
 
 # 2. Automated background jobs & storage photo cleanup
@@ -55,7 +56,7 @@ supabase functions deploy scheduled-jobs
 Set the required secrets in Supabase Dashboard (Settings → Edge Functions → Secrets) or via Supabase CLI:
 
 ```bash
-supabase secrets set ITEM_HMAC_SECRET="your_strong_random_secret_here"
+
 ```
 
 ---
@@ -79,3 +80,6 @@ All sensitive operations are strictly enforced at the database level:
 - **Zero Client Trust:** Points, roles, verification statuses, and rate-limits cannot be modified via client-side operations.
 - **Tamper-Proof Audit Trail:** `admin_audit_log` allows only `SELECT` and `INSERT` policies; updates and deletes are permanently rejected.
 - **Privacy First:** Full names and student IDs are withheld from public queries, leaderboard rankings, and notifications.
+
+
+Apply all numbered migrations before updating the app. Deploy both Edge Functions in the same release. For Cron, store the service-role credential in Vault and POST a JSON body of `{"job":"all"}` to `scheduled-jobs`. The admin dashboard uses the current administrator's session. Cash ownership checks take place in person at the Lost & Found office.

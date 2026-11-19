@@ -143,7 +143,7 @@ export async function evaluateAndAwardBadges(
     }
 
     return newlyAwarded;
-  } catch (err) {
+  } catch {
     return [];
   }
 }

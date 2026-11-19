@@ -1,10 +1,11 @@
 import { Redirect } from 'expo-router';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { ErrorView } from '@/components/StateViews';
 import { useTheme } from '@/hooks/useTheme';
 
 export default function IndexScreen() {
-  const { isLoading, isAuthenticated, hasConsented, isApproved, isSuspended } = useAuthContext();
+  const { isLoading, isAuthenticated, session, profile, refreshProfile, hasConsented, isApproved, isSuspended } = useAuthContext();
   const theme = useTheme();
 
   if (isLoading) {
@@ -17,6 +18,10 @@ export default function IndexScreen() {
 
   if (!isAuthenticated) {
     return <Redirect href="/(auth)/login" />;
+  }
+
+  if (session && !profile) {
+    return <ErrorView message="Hindi maikarga ang iyong profile." onRetry={refreshProfile} />;
   }
 
   if (!hasConsented) {

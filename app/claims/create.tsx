@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
 import { Spacing, FontSize, BorderRadius } from '@/constants/theme';
@@ -24,80 +24,62 @@ export default function CreateClaimScreen() {
   const { itemId } = useLocalSearchParams<{ itemId: string }>();
 
   const [item, setItem] = useState<ItemWithMeta | null>(null);
-  const [questions, setQuestions] = useState<Array<{ id: string; question: string }>>([]);
+  const [questions, setQuestions] = useState<{ id: string; question: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Form Fields
   const [proofText, setProofText] = useState('');
   const [secretAnswer, setSecretAnswer] = useState('');
-  const [cashAmount, setCashAmount] = useState('');
+  const submitting = useRef(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    async function loadItem() {
-      if (!itemId) return;
-      try {
-        setIsLoading(true);
-        const res = await fetchItemDetail(itemId);
-        setItem(res.item);
-        if (res.secretQuestions) {
-          setQuestions(res.secretQuestions);
-        }
-      } catch (err: any) {
-        setError(err?.message || 'Hindi maikarga ang impormasyon ng gamit.');
-      } finally {
-        setIsLoading(false);
-      }
+  const loadItem = useCallback(async () => {
+    if (!itemId) {
+      setError('Walang napiling gamit.');
+      setIsLoading(false);
+      return;
     }
-    loadItem();
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await fetchItemDetail(itemId);
+      setItem(result.item);
+      setQuestions(result.secretQuestions ?? []);
+    } catch {
+      setError('Hindi maikarga ang impormasyon ng gamit.');
+    } finally {
+      setIsLoading(false);
+    }
   }, [itemId]);
 
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => { void loadItem(); });
+    return () => cancelAnimationFrame(frame);
+  }, [loadItem]);
+
   const handleSubmit = async () => {
-    if (!itemId) return;
-
+    if (!itemId || submitting.current) return;
     if (!proofText.trim()) {
-      Alert.alert('Kulang na Impormasyon', 'Pakibigay ang iyong patunay o deskripsyon ng gamit.');
+      setSubmitError('Pakibigay ang patunay ng pagmamay-ari.');
+      return;
+    }
+    if (questions.length && !secretAnswer.trim()) {
+      setSubmitError('Pakisagutan ang lihim na tanong.');
       return;
     }
 
-    if (item?.category === 'Cash' && !cashAmount.trim()) {
-      Alert.alert('Kulang na Impormasyon', 'Pakilagay ang eksaktong halaga ng salaping nawala sa iyo.');
-      return;
-    }
-
-    if (questions.length > 0 && !secretAnswer.trim()) {
-      Alert.alert('Kulang na Impormasyon', 'Pakisagutan ang lihim na tanong upang mapatunayan ang pagmamay-ari.');
-      return;
-    }
-
+    submitting.current = true;
+    setIsSubmitting(true);
+    setSubmitError(null);
     try {
-      setIsSubmitting(true);
-      const newClaim = await submitClaim({
-        itemId,
-        proofText: proofText.trim(),
-        secretAnswer: secretAnswer.trim() || undefined,
-        cashAmount: cashAmount.trim() || undefined,
-      });
-
-      Alert.alert(
-        'Naisumite ang Claim!',
-        'Matagumpay na naitala ang iyong claim. Aabisuhan ang nag-post upang suriin ito.',
-        [
-          {
-            text: 'Tingnan ang Claim',
-            onPress: () =>
-              router.replace({
-                pathname: '/claims/[id]',
-                params: { id: newClaim.id },
-              }),
-          },
-        ]
-      );
-    } catch (err: any) {
-      console.error('Claim submission failed:', err);
-      Alert.alert('Pagkabigo sa Pag-claim', err?.message || 'Hindi naisumite ang claim.');
+      const claim = await submitClaim({ itemId, proofText, secretAnswer });
+      router.replace({ pathname: '/claims/[id]', params: { id: claim.id } });
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Hindi naisumite ang claim. Pakisubukang muli.');
     } finally {
+      submitting.current = false;
       setIsSubmitting(false);
     }
   };
@@ -115,12 +97,12 @@ export default function CreateClaimScreen() {
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <Stack.Screen options={{ title: 'Pag-claim ng Gamit', headerShown: true }} />
-        <ErrorView message={error || 'Hindi natagpuan ang item.'} />
+        <ErrorView message={error || 'Hindi natagpuan ang item.'} onRetry={itemId ? loadItem : undefined} />
       </View>
     );
   }
 
-  const isCash = item.category === 'Cash';
+  const officePickup = item.requires_office_pickup;
   const categoryIcon = CATEGORY_ICONS[item.category as ItemCategory] || 'cube-outline';
 
   return (
@@ -140,7 +122,7 @@ export default function CreateClaimScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* Item Summary Header Card */}
         <View style={[styles.itemSummaryCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={styles.summaryEmoji}>{categoryIcon}</Text>
+          <Ionicons name={categoryIcon} size={28} color={theme.textSecondary} />
           <View style={styles.summaryDetails}>
             <Text style={[styles.summaryTitle, { color: theme.text }]} numberOfLines={1}>
               {item.title}
@@ -151,38 +133,19 @@ export default function CreateClaimScreen() {
           </View>
         </View>
 
-        {/* Lockout Warning Banner */}
-        <View style={[styles.warningBox, { backgroundColor: '#FFF9E6', borderColor: '#E3B23C' }]}>
-          <Text style={styles.warningTitle}>Paalala sa Pag-verify (3 Pagsubok)</Text>
-          <Text style={styles.warningText}>
-            Upang maiwasan ang panlilinlang, mayroon kang hanggang 3 pagsubok lamang upang sagutan
-            ang mga verification tanong. Kapag nagkamali ng tatlong beses, mai-lock ang automated verification.
-          </Text>
-        </View>
-
-        {/* Verification Section: Cash Amount */}
-        {isCash && (
-          <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Eksaktong Halaga ng Pera *</Text>
-            <Text style={[styles.hintText, { color: theme.textSecondary }]}>
-              Ilagay ang eksaktong halaga (halimbawa: 500 o 1250).
+        {questions.length > 0 && (
+          <View style={[styles.warningBox, { backgroundColor: theme.accent + '22', borderColor: theme.accent }]}>
+            <Text style={[styles.warningTitle, { color: theme.text }]}>Tatlong pagsubok sa lihim na tanong</Text>
+            <Text style={[styles.warningText, { color: theme.textSecondary }]}>
+              Makipag-ugnayan sa Lost &amp; Found Office kung ma-lock ang verification.
             </Text>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: theme.inputBackground,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
-              ]}
-              placeholder="Hal: 500"
-              placeholderTextColor={theme.placeholder}
-              keyboardType="numeric"
-              value={cashAmount}
-              onChangeText={setCashAmount}
-            />
           </View>
+        )}
+
+        {officePickup && (
+          <Text style={[styles.hintText, { color: theme.textSecondary }]}>
+            Sa Lost &amp; Found Office susuriin ang patunay ng pagmamay-ari. Ibigay doon ang mga sensitibong detalye.
+          </Text>
         )}
 
         {/* Verification Section: Secret Questions */}
@@ -238,6 +201,7 @@ export default function CreateClaimScreen() {
         </View>
 
         {/* Submit Button */}
+        {submitError && <Text accessibilityLiveRegion="polite" style={{ color: theme.text }}>{submitError}</Text>}
         <TouchableOpacity
           style={[
             styles.submitButton,
@@ -245,6 +209,8 @@ export default function CreateClaimScreen() {
             isSubmitting && { opacity: 0.7 },
           ]}
           onPress={handleSubmit}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
           disabled={isSubmitting}
           activeOpacity={0.85}
         >

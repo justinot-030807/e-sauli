@@ -20,8 +20,7 @@ export async function fetchClaimMessages(claimId: string): Promise<MessageWithSe
     .order('created_at', { ascending: true });
 
   if (error || !messages) {
-    console.error('Error fetching messages:', error);
-    return [];
+    throw new Error('Hindi maikarga ang mga mensahe.');
   }
 
   return messages.map((m) => ({
@@ -35,9 +34,7 @@ export async function fetchClaimMessages(claimId: string): Promise<MessageWithSe
  */
 export async function sendClaimMessage(
   claimId: string,
-  recipientId: string,
-  body: string,
-  itemId: string
+  body: string
 ): Promise<Message> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
@@ -57,15 +54,6 @@ export async function sendClaimMessage(
   if (error || !newMessage) {
     throw new Error(error?.message || 'Failed to send message');
   }
-
-  // Notify recipient
-  await supabase.from('notifications').insert({
-    user_id: recipientId,
-    type: 'new_message',
-    body: `Bagong mensahe: "${body.length > 30 ? body.substring(0, 27) + '...' : body}"`,
-    item_id: itemId,
-    read: false,
-  });
 
   return newMessage;
 }

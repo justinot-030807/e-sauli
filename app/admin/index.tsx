@@ -5,13 +5,13 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   Alert,
   TextInput,
   Modal,
   RefreshControl,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
+import { confirmAction } from '@/utils/confirmAction';
 import { useAuthContext } from '@/contexts/AuthContext';
 import {
   fetchAdminStats,
@@ -38,7 +38,7 @@ import {
   runDay5ReminderJob,
   runPhotoCleanupJob,
 } from '@/services/jobs';
-import { markItemAsReturned } from '@/services/returns';
+import { fetchAdminPendingClaims, type ClaimWithMeta } from '@/services/claims';
 import type { Profile, AdminAuditLog, JobLog, OfficeSettings, ApprovalStatus } from '@/types/database';
 import { LoadingView, ErrorView } from '@/components/StateViews';
 
@@ -54,6 +54,7 @@ export default function AdminDashboardScreen() {
   const [error, setError] = useState<string | null>(null);
 
   // Tab Data States
+  const [pendingClaims, setPendingClaims] = useState<ClaimWithMeta[]>([]);
   const [users, setUsers] = useState<Profile[]>([]);
   const [userFilter, setUserFilter] = useState<'all' | 'pending' | 'suspended'>('pending');
   const [reports, setReports] = useState<ReportWithDetails[]>([]);
@@ -87,7 +88,9 @@ export default function AdminDashboardScreen() {
       setStats(s);
 
       // Load specific tab data based on selection
-      if (activeTab === 'users') {
+      if (activeTab === 'claims') {
+        setPendingClaims(await fetchAdminPendingClaims());
+      } else if (activeTab === 'users') {
         const u = await fetchAdminUsers(userFilter);
         setUsers(u);
       } else if (activeTab === 'reports') {
@@ -116,8 +119,8 @@ export default function AdminDashboardScreen() {
   }, [activeTab, userFilter]);
 
   useEffect(() => {
-    setLoading(true);
-    loadDashboard();
+    const frame = requestAnimationFrame(() => { setLoading(true); void loadDashboard(); });
+    return () => cancelAnimationFrame(frame);
   }, [loadDashboard]);
 
   const onRefresh = () => {
@@ -158,11 +161,9 @@ export default function AdminDashboardScreen() {
 
   const handleSuspension = (targetUser: Profile) => {
     const nextState = !targetUser.is_suspended;
-    Alert.alert(
+    confirmAction(
       nextState ? 'Isuspinde ang User' : 'Ibalik ang Access',
       `Sigurado ka bang nais mong ${nextState ? 'isuspinde' : 'ibalik'} ang account ni ${targetUser.nickname}?`,
-      [
-        { text: 'Kanselahin', style: 'cancel' },
         {
           text: 'Ituloy',
           style: nextState ? 'destructive' : 'default',
@@ -183,7 +184,6 @@ export default function AdminDashboardScreen() {
             }
           },
         },
-      ]
     );
   };
 
@@ -408,8 +408,11 @@ export default function AdminDashboardScreen() {
         </TouchableOpacity>
       </ScrollView>
 
+      {loading && <LoadingView message="Kinakarga ang dashboard..." />}
+      {!loading && error && <ErrorView message={error} onRetry={onRefresh} />}
+
       {/* ================= TAB 1: CLAIMS & ITEMS ================= */}
-      {activeTab === 'claims' && (
+      {!loading && !error && activeTab === 'claims' && (
         <View style={styles.sectionContainer}>
           <View style={styles.sectionTitleRow}>
             <Text style={styles.sectionHeaderTitle}>Custody & Claim Review</Text>
@@ -419,6 +422,21 @@ export default function AdminDashboardScreen() {
             >
               <Text style={styles.actionShortcutText}>Lockout Override</Text>
             </TouchableOpacity>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardInfoTitle}>Mga nakabinbing claim</Text>
+            {pendingClaims.length === 0 && <Text style={styles.cardInfoText}>Walang claim na kailangang suriin.</Text>}
+            {pendingClaims.map((claim) => (
+              <TouchableOpacity
+                key={claim.id}
+                accessibilityRole="button"
+                style={styles.manageButton}
+                onPress={() => router.push({ pathname: '/claims/[id]', params: { id: claim.id } })}
+              >
+                <Text style={styles.manageButtonText}>{claim.item?.title ?? 'Suriin ang claim'}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
           <View style={styles.card}>
@@ -437,7 +455,7 @@ export default function AdminDashboardScreen() {
       )}
 
       {/* ================= TAB 2: USERS MANAGEMENT ================= */}
-      {activeTab === 'users' && (
+      {!loading && !error && activeTab === 'users' && (
         <View style={styles.sectionContainer}>
           <View style={styles.filterRow}>
             {(['pending', 'all', 'suspended'] as const).map((f) => (
@@ -519,7 +537,7 @@ export default function AdminDashboardScreen() {
       )}
 
       {/* ================= TAB 3: REPORTS & MODERATION ================= */}
-      {activeTab === 'reports' && (
+      {!loading && !error && activeTab === 'reports' && (
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionHeaderTitle}>Mga Ulat ng Mag-aaral ({reports.length})</Text>
           {reports.length === 0 ? (
@@ -538,7 +556,7 @@ export default function AdminDashboardScreen() {
 
                 {rep.targetItem && (
                   <View style={styles.itemPreviewBox}>
-                    <Text style={styles.itemPreviewTitle}>"{rep.targetItem.title}"</Text>
+                    <Text style={styles.itemPreviewTitle}>&ldquo;{rep.targetItem.title}&rdquo;</Text>
                     <Text style={styles.itemPreviewSub}>
                       Status: {rep.targetItem.status} • Hidden: {rep.targetItem.is_hidden ? 'YES' : 'NO'}
                     </Text>
@@ -575,7 +593,7 @@ export default function AdminDashboardScreen() {
       )}
 
       {/* ================= TAB 4: DISPUTES ================= */}
-      {activeTab === 'disputes' && (
+      {!loading && !error && activeTab === 'disputes' && (
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionHeaderTitle}>Mga Inihain na Dispute ({disputes.length})</Text>
           {disputes.length === 0 ? (
@@ -612,7 +630,7 @@ export default function AdminDashboardScreen() {
       )}
 
       {/* ================= TAB 5: OFFICE SETTINGS ================= */}
-      {activeTab === 'office' && (
+      {!loading && !error && activeTab === 'office' && (
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionHeaderTitle}>Mga Oras ng Operasyon ng Opisina</Text>
           {officeSettings && (
@@ -685,7 +703,7 @@ export default function AdminDashboardScreen() {
       )}
 
       {/* ================= TAB 6: AUDIT TRAIL ================= */}
-      {activeTab === 'audit' && (
+      {!loading && !error && activeTab === 'audit' && (
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionHeaderTitle}>Admin Audit Trail (Immutable)</Text>
           {auditLogs.length === 0 ? (
@@ -708,7 +726,7 @@ export default function AdminDashboardScreen() {
       )}
 
       {/* ================= TAB 7: JOB LOGS & SCHEDULING ================= */}
-      {activeTab === 'jobs' && (
+      {!loading && !error && activeTab === 'jobs' && (
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionHeaderTitle}>Scheduled Background Jobs</Text>
 

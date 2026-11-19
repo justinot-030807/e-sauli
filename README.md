@@ -25,6 +25,8 @@ Execute the migration files sequentially in the Supabase SQL Editor:
 2. `supabase/migrations/00002_return_and_jobs_rpc.sql` — Return confirmation, office handover, auto-confirm cron, dispute auto-freeze, 30-day expiration, and points calculation.
 3. `supabase/migrations/00003_leaderboard_rpc.sql` — Privacy-preserving leaderboard ranking RPC with college filters and podium rankings.
 4. `supabase/migrations/00004_admin_and_moderation_rpc.sql` — Admin approval, suspension, content moderation, dispute resolution, controlled point reversals, and lockout overrides.
+5. `supabase/migrations/00005_secure_workflows.sql` — Restricts profile and photo access, validates report and claim transitions, and limits maintenance RPCs to the service role.
+6. `supabase/migrations/00006_return_and_admin_integrity.sql` — Fixes lost-item return roles, restricts disputes to verified recipients, and corrects admin audit writes.
 
 ### 3. Auth Configuration
 1. Go to **Authentication → Providers → Email**.
@@ -73,22 +75,18 @@ WHERE id = (SELECT id FROM auth.users WHERE email = 'admin@marsu.edu.ph');
 
 ### 9. Edge Functions
 The project provides two server-side Supabase Edge Functions:
-1. `supabase/functions/verify-cash-amount` — Server-side HMAC comparison for Cash and Wallet claims with 3-attempt lockout enforcement.
-2. `supabase/functions/scheduled-jobs` — Background automation for 30-day auto-expiration, 7-day auto-confirmation, 60-day storage photo cleanup via Storage API, and Day 5 return reminders.
+- `scheduled-jobs` runs expiration, auto-confirmation, photo cleanup, and reminders. It accepts authenticated administrators or the service-role bearer token for scheduled calls.
+- `verify-cash-amount` is retired. Deploy the replacement on projects that already host it. Cash ownership is verified in person at the Lost & Found office.
 
-Deploy using Supabase CLI:
+Deploy these functions after applying the migrations:
+
 ```bash
-supabase functions deploy verify-cash-amount
 supabase functions deploy scheduled-jobs
-```
-
-Set server-side secrets:
-```bash
-supabase secrets set ITEM_HMAC_SECRET="your_secure_random_hmac_secret_key"
+supabase functions deploy verify-cash-amount
 ```
 
 ### 10. Scheduled Jobs
-Set up recurring cron triggers or call the `scheduled-jobs` Edge Function:
+Set up cron to send an authenticated POST with `{"job":"all"}` to the `scheduled-jobs` Edge Function. Keep the service-role token in Supabase Vault or server-side configuration.
 - **Auto-Expiration (30 Days)**: Archives lost posts and flags unreturned found items for office custody.
 - **Auto-Confirmation (7 Days)**: Marks released items as returned after 7 days if unconfirmed, awarding finder points (+50).
 - **Photo Cleanup (60 Days)**: Permanently purges photos of resolved items from the Storage bucket.
@@ -148,7 +146,6 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
 # Server-Only Variables (Supabase Edge Function Secrets - NEVER expose in client)
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-ITEM_HMAC_SECRET=your-random-hmac-secret-string
 ```
 
 ### 19. Security Testing (`SECURITY_TEST.md`)

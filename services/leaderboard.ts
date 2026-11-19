@@ -85,74 +85,47 @@ const SAMPLE_LEADERBOARD: LeaderboardEntry[] = [
 export async function fetchLeaderboard(
   timeframe: LeaderboardTimeframe = 'all_time',
   college?: string | null,
-  limit: number = 50
+  limit = 50,
+  isDemo = false,
 ): Promise<LeaderboardEntry[]> {
-  try {
-    const { data, error } = await supabase.rpc('get_leaderboard', {
-      p_timeframe: timeframe,
-      p_college: college || null,
-      p_limit: limit,
-    });
-
-    if (error || !data || (data as any[]).length === 0) {
-      return SAMPLE_LEADERBOARD;
-    }
-
-    return (data as any[]).map((row) => ({
-      userId: row.user_id,
-      rank: Number(row.rank),
-      nickname: row.nickname,
-      college: row.college,
-      points: Number(row.points),
-      returnsCount: Number(row.returns_count),
-    }));
-  } catch (err: any) {
-    return SAMPLE_LEADERBOARD;
+  if (isDemo) {
+    return SAMPLE_LEADERBOARD.filter((row) => !college || row.college === college)
+      .slice(0, limit).map((row, index) => ({ ...row, rank: index + 1 }));
   }
+
+  const { data, error } = await supabase.rpc('get_leaderboard', {
+    p_timeframe: timeframe,
+    p_college: college || null,
+    p_limit: limit,
+  });
+  if (error) throw new Error('Hindi maikarga ang leaderboard.');
+
+  return data.map((row) => ({
+    userId: row.user_id,
+    rank: Number(row.rank),
+    nickname: row.nickname,
+    college: row.college,
+    points: Number(row.points),
+    returnsCount: Number(row.returns_count),
+  }));
 }
 
-/**
- * Fetches the authenticated user's current rank and remaining points needed for Top 10.
- */
 export async function fetchUserRank(
   userId: string,
   timeframe: LeaderboardTimeframe = 'all_time',
-  college?: string | null
+  college?: string | null,
 ): Promise<UserRankInfo | null> {
-  try {
-    const { data, error } = await supabase.rpc('get_user_rank', {
-      p_user_id: userId,
-      p_timeframe: timeframe,
-      p_college: college || null,
-    });
+  const { data, error } = await supabase.rpc('get_user_rank', {
+    p_user_id: userId,
+    p_timeframe: timeframe,
+    p_college: college || null,
+  });
+  if (error) throw new Error('Hindi maikarga ang iyong ranggo.');
 
-    if (error || !data) {
-      return {
-        rank: 1,
-        points: 245,
-        pointsToTop10: 0,
-      };
-    }
-
-    const res = Array.isArray(data) ? data[0] : (data as any);
-    if (!res) {
-      return {
-        rank: 1,
-        points: 245,
-        pointsToTop10: 0,
-      };
-    }
-
-    return {
-      rank: Number(res.rank ?? 1),
-      points: Number(res.points ?? 0),
-      pointsToTop10: Number(res.points_to_top10 ?? res.points_to_top_10 ?? 0),
-    };
-  } catch (err) {
-    return {
-      rank: 1,
-      points: 245,
-      pointsToTop10: 0,
-    };
-  }
+  const row = data[0];
+  return row ? {
+    rank: Number(row.rank),
+    points: Number(row.points),
+    pointsToTop10: Number(row.points_to_top10),
+  } : null;
 }

@@ -6,14 +6,15 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Modal,
   RefreshControl,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { confirmAction } from '@/utils/confirmAction';
 import { signOut } from '@/services/auth';
+import { fetchMyClaims, type ClaimWithMeta } from '@/services/claims';
 import { fetchUserBadges, UserBadgeWithDetail } from '@/services/badges';
 import { supabase } from '@/lib/supabase';
 import type { Item } from '@/types/database';
@@ -21,17 +22,19 @@ import { CATEGORY_ICONS, ItemCategory } from '@/constants/categories';
 import { LOCAL_ITEMS } from '@/services/items';
 
 export default function ProfileScreen() {
-  const { profile, user, refreshProfile } = useAuthContext();
+  const { profile, user, session, refreshProfile } = useAuthContext();
 
   const [badges, setBadges] = useState<UserBadgeWithDetail[]>([]);
   const [selectedBadge, setSelectedBadge] = useState<UserBadgeWithDetail | null>(null);
   const [showBadgeModal, setShowBadgeModal] = useState(false);
 
   // My Posts States
+  const [myClaims, setMyClaims] = useState<ClaimWithMeta[]>([]);
   const [myItems, setMyItems] = useState<Item[]>([]);
   const [itemFilter, setItemFilter] = useState<'all' | 'lost' | 'found'>('all');
   const [postsCount, setPostsCount] = useState(0);
 
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -40,42 +43,38 @@ export default function ProfileScreen() {
   const loadProfileData = useCallback(async () => {
     if (!user?.id) return;
     try {
-      // 1. Load badges
-      const userBadges = await fetchUserBadges(user.id);
+      setLoadError(null);
+      if (!session) {
+        const items = LOCAL_ITEMS.filter((item) => item.user_id === user.id);
+        setBadges([]);
+        setMyClaims([]);
+        setMyItems(items);
+        setPostsCount(items.length);
+        return;
+      }
+
+      const [userBadges, reports, claims] = await Promise.all([
+        fetchUserBadges(user.id),
+        supabase.from('items').select('*').eq('user_id', user.id)
+          .is('deleted_at', null).order('created_at', { ascending: false }),
+        fetchMyClaims(),
+      ]);
+      if (reports.error) throw reports.error;
       setBadges(userBadges);
-
-      // 2. Load my items
-      let items: Item[] = [];
-      try {
-        const { data: remoteItems, error: itemsError } = await supabase
-          .from('items')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-
-        if (!itemsError && remoteItems && remoteItems.length > 0) {
-          items = remoteItems;
-        }
-      } catch (err) {
-        // ignore
-      }
-
-      if (items.length === 0) {
-        items = LOCAL_ITEMS.filter((it) => it.user_id === user.id);
-      }
-
-      setMyItems(items);
-      setPostsCount(items.length);
-    } catch (err) {
-      console.error('Error loading profile data:', err);
+      setMyClaims(claims);
+      setMyItems(reports.data);
+      setPostsCount(reports.data.length);
+    } catch {
+      setLoadError('Hindi maikarga ang iyong profile at mga ulat. Mag-refresh para subukang muli.');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user?.id]);
+  }, [user, session]);
 
   useEffect(() => {
-    loadProfileData();
+    const frame = requestAnimationFrame(() => { void loadProfileData(); });
+    return () => cancelAnimationFrame(frame);
   }, [loadProfileData]);
 
   const onRefresh = async () => {
@@ -84,60 +83,42 @@ export default function ProfileScreen() {
     await loadProfileData();
   };
 
-  const handleSignOut = async () => {
-    Alert.alert(
-      'Mag-sign Out',
-      'Sigurado ka bang nais mong mag-sign out sa E-Sauli?',
-      [
-        { text: 'Kanselahin', style: 'cancel' },
-        {
-          text: 'Mag-sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            setLoggingOut(true);
-            try {
-              await signOut();
-              router.replace('/(auth)/login');
-            } catch (err) {
-              console.error('Sign out error:', err);
-            } finally {
-              setLoggingOut(false);
-            }
-          },
-        },
-      ]
-    );
+  const handleSignOut = () => {
+    confirmAction('Mag-sign out?', 'Babalik ka sa login screen.', {
+      text: 'Mag-sign out',
+      onPress: async () => {
+        setLoggingOut(true);
+        try {
+          await signOut();
+          router.replace('/(auth)/login');
+        } catch {
+          setLoadError('Hindi natapos ang pag-sign out. Pakisubukang muli.');
+        } finally {
+          setLoggingOut(false);
+        }
+      },
+    });
   };
 
-  const handleDeleteAccount = async () => {
-    Alert.alert(
-      'Burahin ang Account at Datos',
-      'Ang aksyong ito ay hindi na mababawi. Ang iyong personal na impormasyon (pangalan, student ID, email) ay permanenteng buburahin o ia-anonymize ayon sa Data Privacy Act.',
-      [
-        { text: 'Kanselahin', style: 'cancel' },
-        {
-          text: 'Oo, Burahin ang Aking Account',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setDeleting(true);
-              const { error } = await supabase.rpc('delete_own_account');
-              if (error) {
-                Alert.alert('May Error', error.message || 'Nabigong burahin ang account.');
-                return;
-              }
-              await signOut();
-              Alert.alert('Account Nabura', 'Matagumpay na nabura ang iyong account at na-anonymize ang iyong datos.');
-              router.replace('/(auth)/login');
-            } catch (err: any) {
-              Alert.alert('May Error', err?.message || 'Nabigong burahin ang account.');
-            } finally {
-              setDeleting(false);
-            }
-          },
-        },
-      ]
-    );
+  const handleDeleteAccount = () => {
+    if (!session) return;
+    confirmAction('Isara ang account?', 'Aalisin ang pangalan at student ID sa profile. Mananatili ang mga rekord ng mga transaksyon.', {
+      text: 'Isara ang account',
+      style: 'destructive',
+      onPress: async () => {
+        setDeleting(true);
+        try {
+          const { error } = await supabase.rpc('delete_own_account');
+          if (error) throw error;
+          await signOut();
+          router.replace('/(auth)/login');
+        } catch {
+          setLoadError('Hindi naisara ang account. Pakisubukang muli.');
+        } finally {
+          setDeleting(false);
+        }
+      },
+    });
   };
 
   const filteredItems = myItems.filter((it) => {
@@ -168,6 +149,7 @@ export default function ProfileScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#7B1123']} />}
     >
+      {loadError && <Text accessibilityLiveRegion="polite" style={styles.loadError}>{loadError}</Text>}
       {/* Profile Header Card */}
       <View style={styles.headerCard}>
         <View style={styles.avatar}>
@@ -319,6 +301,27 @@ export default function ProfileScreen() {
         )}
       </View>
 
+      {session && (
+        <View style={styles.sectionCard}>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>Mga Claim Ko</Text>
+          {!myClaims.length && <Text style={styles.emptyItemsText}>Wala ka pang naipapasang claim.</Text>}
+          {myClaims.map((claim) => (
+            <TouchableOpacity
+              key={claim.id}
+              accessibilityRole="button"
+              style={styles.postItemCard}
+              onPress={() => router.push({ pathname: '/claims/[id]', params: { id: claim.id } })}
+            >
+              <View style={styles.postItemInfo}>
+                <Text style={styles.postItemTitle}>{claim.item?.title ?? 'Detalye ng claim'}</Text>
+                <Text style={styles.postStatusText}>{claim.status.toUpperCase().replace('_', ' ')}</Text>
+              </View>
+              <View style={styles.viewButton}><Text style={styles.viewButtonText}>Tingnan</Text></View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
       {/* Account Details Card (Section 2 - Private to Own User) */}
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>Impormasyon ng Account</Text>
@@ -350,7 +353,7 @@ export default function ProfileScreen() {
       </View>
 
       {/* Admin Quick Action */}
-      {profile.role === 'admin' && (
+      {session && profile.role === 'admin' && (
         <TouchableOpacity
           style={styles.adminButton}
           onPress={() => router.push('/admin')}
@@ -375,7 +378,8 @@ export default function ProfileScreen() {
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity
+      {session && (
+        <TouchableOpacity
         style={styles.deleteButton}
         onPress={handleDeleteAccount}
         disabled={deleting}
@@ -387,6 +391,7 @@ export default function ProfileScreen() {
           <Text style={styles.deleteText}>Burahin ang Aking Account at Datos</Text>
         )}
       </TouchableOpacity>
+      )}
 
       {/* Badge Details Modal (Screen 15: Badge Popup) */}
       <Modal
@@ -442,6 +447,11 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  loadError: {
+    color: '#7a1f2b',
+    fontSize: 14,
+    padding: 16,
+  },
   container: {
     flex: 1,
     backgroundColor: '#FBF8F3',

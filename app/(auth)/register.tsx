@@ -57,7 +57,7 @@ export default function RegisterScreen() {
     setError(null);
     setIsLoading(true);
     try {
-      await signUp({
+      const result = await signUp({
         email: form.email.trim(),
         password: form.password,
         fullName: form.fullName.trim(),
@@ -65,7 +65,8 @@ export default function RegisterScreen() {
         nickname: form.nickname.trim(),
         college: form.college,
       });
-      router.replace('/(tabs)');
+      if (result.session) router.replace('/');
+      else router.replace({ pathname: '/(auth)/verify-email', params: { email: form.email.trim() } });
     } catch (err: any) {
       setError(err?.message || 'Registration failed. Please try again.');
     } finally {

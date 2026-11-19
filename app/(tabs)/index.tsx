@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   ScrollView,
   Modal,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/useTheme';
 import { Spacing, FontSize, BorderRadius } from '@/constants/theme';
@@ -23,11 +23,14 @@ import {
 import { fetchFeedItems, type ItemWithMeta } from '@/services/items';
 import { ItemCard } from '@/components/ItemCard';
 import { LoadingView, EmptyView, ErrorView } from '@/components/StateViews';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 type FilterType = 'all' | 'lost' | 'found';
 
 export default function HomeFeedScreen() {
   const theme = useTheme();
+  const { session, isAuthenticated } = useAuthContext();
+  const isDemo = isAuthenticated && !session;
 
   // Filter States
   const [activeType, setActiveType] = useState<FilterType>('all');
@@ -38,24 +41,33 @@ export default function HomeFeedScreen() {
 
   // Modal State
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [draftLocation, setDraftLocation] = useState<CampusLocation | 'All'>('All');
+  const [draftSort, setDraftSort] = useState<'newest' | 'oldest'>('newest');
 
   // Data States
   const [items, setItems] = useState<ItemWithMeta[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
+  const errorPage = useRef(1);
   const [error, setError] = useState<string | null>(null);
+  const requestId = useRef(0);
+  const inFlight = useRef(false);
+  const filtersActive = selectedLocation !== 'All' || sortBy !== 'newest';
+  const hasFilters = filtersActive || activeType !== 'all' || selectedCategory !== 'All' || !!searchQuery.trim();
 
   const loadFeed = useCallback(
     async (targetPage = 1, shouldRefresh = false) => {
+      if (targetPage > 1 && inFlight.current) return;
+      const currentRequest = ++requestId.current;
+      inFlight.current = true;
+      setIsLoading(targetPage === 1 && !shouldRefresh);
+      setIsRefreshing(shouldRefresh);
+      setIsLoadingMore(targetPage > 1);
+      setError(null);
       try {
-        if (targetPage === 1 && !shouldRefresh) {
-          setIsLoading(true);
-        }
-        setError(null);
-
         const result = await fetchFeedItems({
           type: activeType,
           category: selectedCategory,
@@ -64,47 +76,64 @@ export default function HomeFeedScreen() {
           sortBy,
           page: targetPage,
           pageSize: 12,
-        });
+        }, isDemo);
+        if (currentRequest !== requestId.current) return;
 
         if (targetPage === 1) {
           setItems(result.items);
         } else {
-          setItems((prev) => [...prev, ...result.items]);
+          setItems((prev) => [...prev, ...result.items.filter((item) => !prev.some(({ id }) => id === item.id))]);
         }
 
         setHasMore(result.hasMore);
         setPage(targetPage);
-      } catch (err: any) {
-        console.error('Feed loading error:', err);
-        setError(err?.message || 'Hindi maikarga ang mga gamit. Pakisubukang muli.');
+      } catch {
+        if (currentRequest !== requestId.current) return;
+        errorPage.current = targetPage;
+        setError(targetPage > 1 ? 'Hindi maikarga ang iba pang gamit.' : 'Hindi maikarga ang mga gamit.');
       } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
-        setIsLoadingMore(false);
+        if (currentRequest === requestId.current) {
+          inFlight.current = false;
+          setIsLoading(false);
+          setIsRefreshing(false);
+          setIsLoadingMore(false);
+        }
       }
     },
-    [activeType, selectedCategory, selectedLocation, searchQuery, sortBy]
+    [activeType, selectedCategory, selectedLocation, searchQuery, sortBy, isDemo]
   );
 
-  useEffect(() => {
-    loadFeed(1);
-  }, [loadFeed]);
+  useFocusEffect(useCallback(() => {
+    inFlight.current = true;
+    setIsLoading(true);
+    setError(null);
+    setIsRefreshing(false);
+    setIsLoadingMore(false);
+    setItems([]);
+    setPage(1);
+    setHasMore(false);
+    const timer = setTimeout(() => void loadFeed(), searchQuery.trim() ? 250 : 0);
+    return () => {
+      clearTimeout(timer);
+      requestId.current++;
+      inFlight.current = false;
+    };
+  }, [loadFeed, searchQuery]));
 
   const handleRefresh = () => {
-    setIsRefreshing(true);
-    loadFeed(1, true);
+    void loadFeed(1, true);
   };
 
   const handleLoadMore = () => {
-    if (!isLoading && !isLoadingMore && hasMore) {
-      setIsLoadingMore(true);
-      loadFeed(page + 1);
+    if (!inFlight.current && !error && hasMore) {
+      void loadFeed(page + 1);
     }
   };
 
-  const renderHeader = useMemo(() => {
-    return (
+  const header = (
       <View style={styles.headerContainer}>
+        <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>Mga Nawawala at Nahanap</Text>
+        {isDemo && <Text style={[styles.demoLabel, { color: theme.textSecondary }]}>Demo · Mga halimbawang ulat</Text>}
         {/* Search Bar */}
         <View style={styles.searchRow}>
           <View
@@ -116,19 +145,20 @@ export default function HomeFeedScreen() {
               },
             ]}
           >
-            <Ionicons name="search-outline" size={18} color={theme.textSecondary} style={{ marginRight: 6 }} />
+            <Ionicons name="search-outline" size={18} color={theme.textSecondary} />
             <TextInput
               style={[styles.searchInput, { color: theme.text }]}
               placeholder="Maghanap ng gamit..."
-              placeholderTextColor={theme.placeholder}
+              placeholderTextColor={theme.textSecondary}
+              accessibilityLabel="Maghanap ng gamit"
               value={searchQuery}
               onChangeText={setSearchQuery}
               returnKeyType="search"
-              clearButtonMode="while-editing"
+              maxLength={100}
             />
             {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={16} color={theme.placeholder} />
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Burahin ang paghahanap" style={styles.iconButton} onPress={() => setSearchQuery('')}>
+                <Ionicons name="close-circle" size={18} color={theme.textSecondary} />
               </TouchableOpacity>
             )}
           </View>
@@ -139,18 +169,22 @@ export default function HomeFeedScreen() {
               styles.filterButton,
               {
                 backgroundColor: theme.surface,
-                borderColor:
-                  selectedLocation !== 'All' || sortBy !== 'newest'
-                    ? theme.primary
-                    : theme.border,
+                borderColor: filtersActive ? theme.primary : theme.border,
               },
             ]}
-            onPress={() => setShowFilterModal(true)}
+            accessibilityRole="button"
+            accessibilityLabel={filtersActive ? 'Mga filter, may napili' : 'Mga filter'}
+            accessibilityState={{ expanded: showFilterModal }}
+            onPress={() => {
+              setDraftLocation(selectedLocation);
+              setDraftSort(sortBy);
+              setShowFilterModal(true);
+            }}
           >
             <Ionicons
               name="options-outline"
               size={20}
-              color={selectedLocation !== 'All' || sortBy !== 'newest' ? theme.primary : theme.textSecondary}
+              color={filtersActive ? theme.text : theme.textSecondary}
             />
           </TouchableOpacity>
         </View>
@@ -163,6 +197,8 @@ export default function HomeFeedScreen() {
             return (
               <TouchableOpacity
                 key={type}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
                 style={[
                   styles.tabItem,
                   isSelected && {
@@ -199,6 +235,8 @@ export default function HomeFeedScreen() {
             return (
               <TouchableOpacity
                 key={cat}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isSelected }}
                 style={[
                   styles.categoryChip,
                   {
@@ -213,7 +251,7 @@ export default function HomeFeedScreen() {
                   style={[
                     styles.categoryChipText,
                     {
-                      color: isSelected ? theme.primary : theme.text,
+                      color: theme.text,
                       fontWeight: isSelected ? '700' : '500',
                     },
                   ]}
@@ -225,29 +263,22 @@ export default function HomeFeedScreen() {
           })}
         </ScrollView>
       </View>
-    );
-  }, [
-    theme,
-    searchQuery,
-    selectedLocation,
-    sortBy,
-    activeType,
-    selectedCategory,
-  ]);
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {isLoading && page === 1 ? (
-        <LoadingView message="Kinakarga ang mga gamit..." />
-      ) : error && items.length === 0 ? (
-        <ErrorView message={error} onRetry={() => loadFeed(1)} />
-      ) : (
+      <View
+        style={styles.feed}
+        aria-hidden={showFilterModal}
+        importantForAccessibility={showFilterModal ? 'no-hide-descendants' : 'auto'}
+      >
+        {header}
         <FlatList
           data={items}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <ItemCard item={item} />}
-          ListHeaderComponent={renderHeader}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, !isDemo && styles.liveListContent]}
+          keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -259,30 +290,38 @@ export default function HomeFeedScreen() {
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.4}
           ListEmptyComponent={
-            <EmptyView
-              title="Walang natagpuang gamit"
-              description="Walang tugmang item sa napiling mga filter. Maaari mong subukang i-reset ang kategorya o lokasyon."
-              actionLabel="I-reset ang mga Filter"
-              onAction={() => {
-                setSelectedCategory('All');
-                setSelectedLocation('All');
-                setActiveType('all');
-                setSearchQuery('');
-              }}
-            />
+            isLoading || isRefreshing ? <LoadingView message="Kinakarga ang mga gamit..." /> :
+              error ? <ErrorView message={error} onRetry={() => void loadFeed()} /> :
+                <EmptyView
+                  title={hasFilters ? 'Walang tugmang gamit' : 'Wala pang ulat ng gamit'}
+                  description={hasFilters ? 'Baguhin ang paghahanap o i-reset ang mga filter.' : 'Kapag may nag-ulat ng nawawala o nahanap na gamit, makikita ito rito.'}
+                  actionLabel={hasFilters ? 'I-reset ang mga filter' : undefined}
+                  onAction={() => {
+                    setSelectedCategory('All');
+                    setSelectedLocation('All');
+                    setActiveType('all');
+                    setSearchQuery('');
+                    setSortBy('newest');
+                  }}
+                />
           }
+          ListFooterComponent={items.length > 0 && (isLoadingMore || error) ? (
+            isLoadingMore ? <LoadingView message="Kinakarga ang iba pang gamit..." /> :
+              <ErrorView message={error ?? undefined} onRetry={() => void loadFeed(errorPage.current, errorPage.current === 1)} />
+          ) : null}
         />
-      )}
 
       {/* Floating Action Button (Mag-report ng gamit) */}
-      <TouchableOpacity
+      {!isDemo && <TouchableOpacity
         style={[styles.fab, { backgroundColor: theme.primary }]}
+        accessibilityRole="button"
         onPress={() => router.push('/items/post')}
         activeOpacity={0.85}
       >
         <Ionicons name="add" size={20} color="#ffffff" style={{ marginRight: 4 }} />
         <Text style={styles.fabText}>Mag-report</Text>
-      </TouchableOpacity>
+      </TouchableOpacity>}
+      </View>
 
       {/* Filter Modal */}
       <Modal
@@ -292,22 +331,25 @@ export default function HomeFeedScreen() {
         onRequestClose={() => setShowFilterModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+          <View accessibilityViewIsModal style={[styles.modalContent, { backgroundColor: theme.surface }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: theme.text }]}>Mga Karagdagang Filter</Text>
-              <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                <Text style={[styles.modalClose, { color: theme.textSecondary }]}>✕</Text>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Isara ang mga filter" style={styles.iconButton} onPress={() => setShowFilterModal(false)}>
+                <Ionicons name="close" size={24} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
 
+            <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.modalFilters}>
             {/* Location Filter */}
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Lokasyon sa Campus</Text>
             <View style={styles.filterChipGroup}>
               {['All', ...CAMPUS_LOCATIONS].map((loc) => {
-                const isSelected = selectedLocation === loc;
+                const isSelected = draftLocation === loc;
                 return (
                   <TouchableOpacity
                     key={loc}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
                     style={[
                       styles.filterChip,
                       {
@@ -315,12 +357,12 @@ export default function HomeFeedScreen() {
                         borderColor: isSelected ? theme.primary : theme.border,
                       },
                     ]}
-                    onPress={() => setSelectedLocation(loc as CampusLocation | 'All')}
+                    onPress={() => setDraftLocation(loc as CampusLocation | 'All')}
                   >
                     <Text
                       style={[
                         styles.filterChipText,
-                        { color: isSelected ? theme.primary : theme.text },
+                        { color: theme.text, fontWeight: isSelected ? '700' : '500' },
                       ]}
                     >
                       {loc === 'All' ? 'Kahit saan' : loc}
@@ -339,10 +381,12 @@ export default function HomeFeedScreen() {
                 { key: 'newest', label: 'Pinakabago' },
                 { key: 'oldest', label: 'Pinakaluma' },
               ].map((sortOption) => {
-                const isSelected = sortBy === sortOption.key;
+                const isSelected = draftSort === sortOption.key;
                 return (
                   <TouchableOpacity
                     key={sortOption.key}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
                     style={[
                       styles.filterChip,
                       {
@@ -350,12 +394,12 @@ export default function HomeFeedScreen() {
                         borderColor: isSelected ? theme.primary : theme.border,
                       },
                     ]}
-                    onPress={() => setSortBy(sortOption.key as 'newest' | 'oldest')}
+                    onPress={() => setDraftSort(sortOption.key as 'newest' | 'oldest')}
                   >
                     <Text
                       style={[
                         styles.filterChipText,
-                        { color: isSelected ? theme.primary : theme.text },
+                        { color: theme.text, fontWeight: isSelected ? '700' : '500' },
                       ]}
                     >
                       {sortOption.label}
@@ -364,11 +408,17 @@ export default function HomeFeedScreen() {
                 );
               })}
             </View>
+            </ScrollView>
 
             {/* Apply Button */}
             <TouchableOpacity
               style={[styles.applyButton, { backgroundColor: theme.primary }]}
-              onPress={() => setShowFilterModal(false)}
+              accessibilityRole="button"
+              onPress={() => {
+                setSelectedLocation(draftLocation);
+                setSortBy(draftSort);
+                setShowFilterModal(false);
+              }}
             >
               <Text style={styles.applyButtonText}>Ilapat ang Filter</Text>
             </TouchableOpacity>
@@ -383,62 +433,76 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  feed: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
+  },
   listContent: {
-    padding: Spacing.md,
-    paddingBottom: 90, // Leave room for FAB
+    flexGrow: 1,
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.lg,
+  },
+  liveListContent: {
+    paddingBottom: 88,
   },
   headerContainer: {
-    marginBottom: Spacing.md,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  heading: {
+    fontSize: FontSize.xl,
+    fontWeight: '700',
+  },
+  demoLabel: {
+    fontSize: FontSize.xs,
   },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    marginBottom: Spacing.sm,
   },
   searchBar: {
     flex: 1,
-    height: 46,
+    minHeight: 48,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-  },
-  searchIcon: {
-    fontSize: 16,
-    marginRight: Spacing.sm,
+    paddingLeft: Spacing.sm,
+    gap: Spacing.sm,
   },
   searchInput: {
     flex: 1,
     fontSize: FontSize.sm,
-    height: '100%',
+    minHeight: 44,
+    minWidth: 0,
   },
-  clearIcon: {
-    fontSize: 14,
-    padding: Spacing.xs,
+  iconButton: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   filterButton: {
-    width: 46,
-    height: 46,
+    width: 48,
+    height: 48,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  filterIcon: {
-    fontSize: 18,
-  },
   tabBar: {
     flexDirection: 'row',
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    padding: 3,
-    marginBottom: Spacing.sm,
+    padding: Spacing.xs,
   },
   tabItem: {
     flex: 1,
-    paddingVertical: Spacing.sm,
+    minHeight: 44,
+    justifyContent: 'center',
     alignItems: 'center',
     borderRadius: BorderRadius.sm,
   },
@@ -448,11 +512,11 @@ const styles = StyleSheet.create({
   categoryScroll: {
     flexDirection: 'row',
     gap: Spacing.sm,
-    paddingVertical: 2,
   },
   categoryChip: {
     paddingHorizontal: Spacing.md,
-    paddingVertical: 6,
+    minHeight: 44,
+    justifyContent: 'center',
     borderRadius: BorderRadius.full,
     borderWidth: 1,
   },
@@ -461,25 +525,19 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: 24,
-    right: 20,
+    bottom: Spacing.lg,
+    right: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    minHeight: 48,
+    paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.full,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.14,
     shadowRadius: 6,
     elevation: 6,
     gap: 6,
-  },
-  fabIcon: {
-    color: '#ffffff',
-    fontSize: 20,
-    fontWeight: '700',
-    lineHeight: 22,
   },
   fabText: {
     color: '#ffffff',
@@ -492,24 +550,27 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
+    width: '100%',
+    maxWidth: 640,
+    maxHeight: '90%',
+    alignSelf: 'center',
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    paddingBottom: Spacing.xxl,
+    padding: Spacing.lg,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
   modalTitle: {
+    flex: 1,
     fontSize: FontSize.lg,
     fontWeight: '700',
   },
-  modalClose: {
-    fontSize: FontSize.lg,
-    padding: 4,
+  modalFilters: {
+    paddingBottom: Spacing.sm,
   },
   sectionTitle: {
     fontSize: FontSize.sm,
@@ -523,7 +584,8 @@ const styles = StyleSheet.create({
   },
   filterChip: {
     paddingHorizontal: Spacing.md,
-    paddingVertical: 8,
+    minHeight: 44,
+    justifyContent: 'center',
     borderRadius: BorderRadius.md,
     borderWidth: 1,
   },
@@ -532,8 +594,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   applyButton: {
-    marginTop: Spacing.xl,
-    height: 48,
+    marginTop: Spacing.md,
+    minHeight: 48,
     borderRadius: BorderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',

@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { confirmAction } from '@/utils/confirmAction';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useTheme } from '@/hooks/useTheme';
 import { Spacing, FontSize, BorderRadius } from '@/constants/theme';
 import { CATEGORY_ICONS, type ItemCategory } from '@/constants/categories';
@@ -25,6 +27,8 @@ import { markItemAsReturned, getOfficeStatus, type OfficeStatusResult } from '@/
 
 export default function ItemDetailScreen() {
   const theme = useTheme();
+  const { session, isAdmin, isLoading: authLoading } = useAuthContext();
+  const sessionUserId = session?.user.id;
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [detail, setDetail] = useState<ItemDetailResponse | null>(null);
@@ -36,6 +40,7 @@ export default function ItemDetailScreen() {
   const [currentUser, setCurrentUser] = useState<{ id: string; role: 'student' | 'admin' } | null>(null);
   const [approvedClaimantId, setApprovedClaimantId] = useState<string | null>(null);
   const [officeStatus, setOfficeStatus] = useState<OfficeStatusResult | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
 
   // Contact Modal States (for Lost posts)
@@ -49,22 +54,20 @@ export default function ItemDetailScreen() {
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
 
   const loadDetail = useCallback(async () => {
-    if (!id) return;
+    if (!id) {
+      setError('Walang napiling gamit.');
+      setIsLoading(false);
+      return;
+    }
+    if (authLoading) return;
     try {
       setIsLoading(true);
       setError(null);
       const res = await fetchItemDetail(id);
       setDetail(res);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .maybeSingle();
-        setCurrentUser({ id: user.id, role: profile?.role || 'student' });
-      }
+      setCurrentUser(sessionUserId ? { id: sessionUserId, role: isAdmin ? 'admin' : 'student' } : null);
+      if (!sessionUserId) return;
 
       // Check if item has an approved claim
       const { data: approvedClaim } = await supabase
@@ -80,7 +83,7 @@ export default function ItemDetailScreen() {
         setOfficeStatus(off);
       }
 
-      if (res.isOwner) {
+      if (res.isOwner || isAdmin) {
         const claims = await fetchClaimsForItem(id);
         setExistingClaims(claims);
       }
@@ -90,36 +93,30 @@ export default function ItemDetailScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [id]);
+  }, [id, isAdmin, sessionUserId, authLoading]);
 
   const handleMarkAsReturned = async () => {
     if (!id || !detail) return;
-    Alert.alert(
-      'Markahan bilang Naisauli / Released',
-      'Sigurado ka bang naibigay o naisauli na ang gamit? Aabisuhan ang may-ari upang kumpirmahin ang pagkakatanggap sa loob ng 7 araw.',
-      [
-        { text: 'Kanselahin', style: 'cancel' },
-        {
-          text: 'Oo, Nai-release Na',
-          onPress: async () => {
-            try {
-              setIsActionLoading(true);
-              await markItemAsReturned(id);
-              Alert.alert('Nai-release Na', 'Matagumpay na minarkahan ang item bilang released.');
-              loadDetail();
-            } catch (err: any) {
-              Alert.alert('May Error', err?.message || 'Nabigong markahan ang item.');
-            } finally {
-              setIsActionLoading(false);
-            }
-          },
-        },
-      ]
-    );
+    confirmAction('Markahan bilang naisauli?', 'Aabisuhan ang may-ari upang kumpirmahin ang pagkakatanggap.', {
+      text: 'Markahan bilang naisauli',
+      onPress: async () => {
+        setActionError(null);
+        setIsActionLoading(true);
+        try {
+          await markItemAsReturned(id);
+          await loadDetail();
+        } catch (err) {
+          setActionError(err instanceof Error ? err.message : 'Hindi naitala ang handover.');
+        } finally {
+          setIsActionLoading(false);
+        }
+      },
+    });
   };
 
   useEffect(() => {
-    loadDetail();
+    const frame = requestAnimationFrame(() => void loadDetail());
+    return () => cancelAnimationFrame(frame);
   }, [loadDetail]);
 
   const handleReportSubmit = async () => {
@@ -179,6 +176,7 @@ export default function ItemDetailScreen() {
 
   const { item, officeSettings, isOwner } = detail;
   const isLost = item.type === 'lost';
+  const photo = item.localImage ?? (item.signedPhotoUrl ? { uri: item.signedPhotoUrl } : null);
   const categoryIcon = CATEGORY_ICONS[item.category as ItemCategory] || 'cube-outline';
 
   return (
@@ -189,8 +187,10 @@ export default function ItemDetailScreen() {
           headerShown: true,
           headerStyle: { backgroundColor: theme.headerBackground },
           headerTintColor: theme.headerText,
-          headerRight: () => (
+          headerRight: !session ? undefined : () => (
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="I-report ang ulat"
               onPress={() => setShowReportModal(true)}
               style={styles.headerRightBtn}
             >
@@ -201,6 +201,7 @@ export default function ItemDetailScreen() {
       />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {actionError && <Text accessibilityLiveRegion="polite" style={{ color: theme.text }}>{actionError}</Text>}
         {/* Photo or Category Graphic */}
         <View
           style={[
@@ -208,9 +209,9 @@ export default function ItemDetailScreen() {
             { backgroundColor: isLost ? '#FBEBEB' : '#EAF7EE' },
           ]}
         >
-          {item.signedPhotoUrl ? (
+          {photo ? (
             <Image
-              source={{ uri: item.signedPhotoUrl }}
+              source={photo}
               style={styles.heroImage}
               resizeMode="contain"
             />
@@ -350,7 +351,7 @@ export default function ItemDetailScreen() {
                 </Text>
               </View>
 
-              {currentUser?.id === approvedClaimantId || (isLost && isOwner) ? (
+              {(isLost ? isOwner : currentUser?.id === approvedClaimantId) ? (
                 <View>
                   <TouchableOpacity
                     style={[styles.primaryActionBtn, { backgroundColor: '#E8B83A' }]}
@@ -371,7 +372,7 @@ export default function ItemDetailScreen() {
                     </Text>
                   </TouchableOpacity>
                 </View>
-              ) : isOwner ? (
+              ) : (isLost ? currentUser?.id === approvedClaimantId : isOwner) ? (
                 <View style={[styles.ownerBadge, { backgroundColor: theme.accent + '25' }]}>
                   <Text style={[styles.ownerBadgeText, { color: '#8F6600' }]}>
                     ⭐ Nai-release mo na ang gamit. Naghihintay ng kumpirmasyon mula sa may-ari.
@@ -447,13 +448,13 @@ export default function ItemDetailScreen() {
                 ) : null
               )}
             </View>
-          ) : isOwner ? (
+          ) : isOwner || isAdmin ? (
             <View>
-              <View style={[styles.ownerBadge, { backgroundColor: theme.accent + '25' }]}>
+              {isOwner && <View style={[styles.ownerBadge, { backgroundColor: theme.accent + '25' }]}>
                 <Text style={[styles.ownerBadgeText, { color: '#8F6600' }]}>
-                  ⭐ Ikaw ang nag-post ng gamit na ito
+                  Ikaw ang nag-post ng gamit na ito
                 </Text>
-              </View>
+              </View>}
 
               {existingClaims.length > 0 && (
                 <View style={styles.ownerClaimsSection}>
@@ -473,7 +474,7 @@ export default function ItemDetailScreen() {
                     >
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.claimRowName, { color: theme.text }]}>
-                          Poster: {cl.claimantNickname}
+                          {cl.claimantNickname ?? 'Estudyante'}
                         </Text>
                         <Text style={[styles.claimRowStatus, { color: theme.textSecondary }]}>
                           Katayuan: {cl.status.toUpperCase()}
@@ -485,7 +486,7 @@ export default function ItemDetailScreen() {
                 </View>
               )}
             </View>
-          ) : isLost ? (
+          ) : !session ? null : isLost ? (
             <TouchableOpacity
               style={[styles.primaryActionBtn, { backgroundColor: theme.primary }]}
               onPress={() => setShowContactModal(true)}

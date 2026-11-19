@@ -1,8 +1,8 @@
 import { supabase } from '@/lib/supabase';
+import type { ImageSourcePropType } from 'react-native';
 import type { Item, ItemType, OfficeSettings } from '@/types/database';
 import { SENSITIVE_CATEGORIES, type ItemCategory, type CampusLocation } from '@/constants/categories';
 import { getSignedPhotoUrl } from './storage';
-import { findAndNotifyMatches } from './matching';
 import { getStoredLocalSession } from './auth';
 
 export interface FeedFilterParams {
@@ -19,14 +19,14 @@ export interface ItemWithMeta extends Item {
   signedPhotoUrl?: string | null;
   posterNickname?: string;
   posterCollege?: string;
-  localImage?: any;
+  localImage?: ImageSourcePropType;
 }
 
 export interface ItemDetailResponse {
   item: ItemWithMeta;
   officeSettings?: OfficeSettings | null;
   isOwner: boolean;
-  secretQuestions?: Array<{ id: string; question: string }>;
+  secretQuestions?: { id: string; question: string }[];
 }
 
 export interface CreateItemInput {
@@ -38,8 +38,7 @@ export interface CreateItemInput {
   dateHappened: string;
   photoPath?: string | null;
   privateDetails?: string;
-  amountHmac?: string;
-  secretQuestions?: Array<{ question: string; answerHmac: string }>;
+  secretQuestions?: { question: string; answerHmac: string }[];
 }
 
 export function sanitizePublicItem<T extends Item>(item: T): T {
@@ -50,7 +49,7 @@ export function sanitizePublicItem<T extends Item>(item: T): T {
     return {
       ...item,
       title: 'Cash found',
-      description: 'Cash found on campus. Claimant must verify the exact amount and details to claim.',
+      description: 'Cash found on campus. Claimant must verify the exact amount at the Lost & Found office.',
     };
   }
 
@@ -187,7 +186,7 @@ export const FALLBACK_ITEMS: ItemWithMeta[] = [
 
 export const LOCAL_ITEMS: ItemWithMeta[] = [...FALLBACK_ITEMS];
 
-export async function fetchFeedItems(params: FeedFilterParams = {}): Promise<{
+export async function fetchFeedItems(params: FeedFilterParams = {}, isDemo = false): Promise<{
   items: ItemWithMeta[];
   hasMore: boolean;
 }> {
@@ -201,57 +200,42 @@ export async function fetchFeedItems(params: FeedFilterParams = {}): Promise<{
     pageSize = 15,
   } = params;
 
-  let rawItems: ItemWithMeta[] = [];
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize;
+  const search = searchQuery.trim();
+  const ascending = sortBy === 'oldest';
+  let rawItems: ItemWithMeta[];
 
-  try {
-    let query = supabase
-      .from('items')
-      .select('*')
+  if (isDemo) {
+    const normalized = search.toLowerCase();
+    rawItems = LOCAL_ITEMS.map(sanitizePublicItem)
+      .filter((item) =>
+        (type === 'all' || item.type === type)
+        && (category === 'All' || item.category === category)
+        && (location === 'All' || item.location === location)
+        && (item.title.toLowerCase().includes(normalized) || item.description.toLowerCase().includes(normalized)))
+      .sort((left, right) => (ascending ? 1 : -1) * left.created_at.localeCompare(right.created_at))
+      .slice(from, to + 1);
+  } else {
+    let query = supabase.from('items').select('*')
       .eq('is_hidden', false)
       .is('deleted_at', null)
       .in('status', ['open', 'claim_requested', 'verified']);
 
     if (type !== 'all') query = query.eq('type', type);
-    if (category && category !== 'All') query = query.eq('category', category);
-    if (location && location !== 'All') query = query.eq('location', location);
-    if (searchQuery.trim()) {
-      const q = `%${searchQuery.trim()}%`;
-      query = query.or(`title.ilike.${q},description.ilike.${q}`);
+    if (category !== 'All') query = query.eq('category', category);
+    if (location !== 'All') query = query.eq('location', location);
+    if (search) {
+      const pattern = '%' + search.replace(/[\\%_]/g, '\\$&') + '%';
+      const quoted = '"' + pattern.replace(/[\\"]/g, '\\$&') + '"';
+      query = query.or('title.ilike.' + quoted + ',description.ilike.' + quoted);
     }
 
-    query = query.order('created_at', { ascending: sortBy === 'oldest' });
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize;
-    query = query.range(from, to);
-
-    const { data, error } = await query;
-    if (!error && data && data.length > 0) {
-      rawItems = data;
-    }
-  } catch (err) {
-    console.warn('Error fetching items from Supabase, using local items:', err);
-  }
-
-  // Fallback to local and user-created items
-  if (rawItems.length === 0) {
-    rawItems = LOCAL_ITEMS.filter((item) => {
-      if (type !== 'all' && item.type !== type) return false;
-      if (category && category !== 'All' && item.category !== category) return false;
-      if (location && location !== 'All' && item.location !== location) return false;
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const matchesTitle = item.title.toLowerCase().includes(q);
-        const matchesDesc = item.description.toLowerCase().includes(q);
-        if (!matchesTitle && !matchesDesc) return false;
-      }
-      return true;
-    });
-
-    if (sortBy === 'oldest') {
-      rawItems.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-    } else {
-      rawItems.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    }
+    const { data, error } = await query.order('created_at', { ascending })
+      .order('id', { ascending })
+      .range(from, to);
+    if (error) throw error;
+    rawItems = data;
   }
 
   const hasMore = rawItems.length > pageSize;
@@ -260,14 +244,16 @@ export async function fetchFeedItems(params: FeedFilterParams = {}): Promise<{
   const itemsWithMeta: ItemWithMeta[] = await Promise.all(
     pageItems.map(async (rawItem) => {
       const sanitized = sanitizePublicItem(rawItem);
+      const sensitive = SENSITIVE_CATEGORIES.includes(sanitized.category as ItemCategory);
       let signedPhotoUrl: string | null = rawItem.signedPhotoUrl || null;
 
-      if (!signedPhotoUrl && sanitized.photo_path && !SENSITIVE_CATEGORIES.includes(sanitized.category as ItemCategory)) {
+      if (!signedPhotoUrl && sanitized.photo_path && !sensitive) {
         signedPhotoUrl = await getSignedPhotoUrl(sanitized.photo_path, 3600);
       }
 
       return {
         ...sanitized,
+        localImage: sensitive ? undefined : rawItem.localImage,
         signedPhotoUrl,
         posterNickname: rawItem.posterNickname || 'Estudyante',
         posterCollege: rawItem.posterCollege || 'Campus Community',
@@ -279,33 +265,19 @@ export async function fetchFeedItems(params: FeedFilterParams = {}): Promise<{
 }
 
 export async function fetchItemDetail(itemId: string): Promise<ItemDetailResponse> {
-  const { data: { user } } = await supabase.auth.getUser();
-  const localSession = await getStoredLocalSession();
-  const currentUserId = user?.id || localSession?.user?.id;
+  const { data: { session } } = await supabase.auth.getSession();
+  const demo = session ? null : await getStoredLocalSession();
+  const currentUserId = session?.user.id ?? demo?.user.id;
+  let rawItem: ItemWithMeta | null;
 
-  let rawItem: ItemWithMeta | null = null;
-
-  try {
-    const { data, error } = await supabase
-      .from('items')
-      .select('*')
-      .eq('id', itemId)
-      .single();
-
-    if (!error && data) {
-      rawItem = data;
-    }
-  } catch (err) {
-    console.warn('Supabase fetchItemDetail failed, checking local:', err);
+  if (demo) {
+    rawItem = LOCAL_ITEMS.find((item) => item.id === itemId) ?? null;
+  } else {
+    const { data, error } = await supabase.from('items').select('*').eq('id', itemId).maybeSingle();
+    if (error) throw error;
+    rawItem = data;
   }
-
-  if (!rawItem) {
-    rawItem = LOCAL_ITEMS.find((it) => it.id === itemId) || null;
-  }
-
-  if (!rawItem) {
-    throw new Error('Hindi matagpuan ang detalye ng gamit.');
-  }
+  if (!rawItem) throw new Error('Hindi matagpuan ang detalye ng gamit.');
 
   const isOwner = !!currentUserId && currentUserId === rawItem.user_id;
   const displayedItem = isOwner ? rawItem : sanitizePublicItem(rawItem);
@@ -318,7 +290,7 @@ export async function fetchItemDetail(itemId: string): Promise<ItemDetailRespons
   let posterNickname = rawItem.posterNickname || 'Estudyante';
   let posterCollege = rawItem.posterCollege || 'Campus Community';
 
-  try {
+  if (!demo) {
     const { data: profileData } = await supabase.rpc('get_public_profile', {
       target_user_id: displayedItem.user_id,
     });
@@ -326,41 +298,29 @@ export async function fetchItemDetail(itemId: string): Promise<ItemDetailRespons
       posterNickname = profileData[0].nickname;
       posterCollege = profileData[0].college;
     }
-  } catch (err) {
-    // ignore
   }
 
   let officeSettings: OfficeSettings | null = null;
-  if (displayedItem.requires_office_pickup) {
-    try {
+  if (!demo && displayedItem.requires_office_pickup) {
       const { data: officeData } = await supabase
         .from('office_settings')
         .select('*')
         .limit(1)
         .maybeSingle();
-      officeSettings = officeData;
-    } catch (e) {
-      // ignore
-    }
+    officeSettings = officeData;
   }
 
-  let secretQuestions: Array<{ id: string; question: string }> = [];
-  if (displayedItem.type === 'found' && !isOwner) {
-    try {
-      const { data: questionsData } = await supabase.rpc('get_item_questions', {
-        p_item_id: displayedItem.id,
-      });
-      if (questionsData) {
-        secretQuestions = questionsData;
-      }
-    } catch (err) {
-      // ignore
-    }
+  let secretQuestions: { id: string; question: string }[] = [];
+  if (!demo && displayedItem.type === 'found' && !isOwner && ['open', 'claim_requested'].includes(displayedItem.status)) {
+    const { data, error } = await supabase.rpc('get_item_questions', { p_item_id: displayedItem.id });
+    if (error) throw error;
+    secretQuestions = data ?? [];
   }
 
   return {
     item: {
       ...displayedItem,
+      localImage: SENSITIVE_CATEGORIES.includes(displayedItem.category as ItemCategory) ? undefined : rawItem.localImage,
       signedPhotoUrl,
       posterNickname,
       posterCollege,
@@ -372,77 +332,18 @@ export async function fetchItemDetail(itemId: string): Promise<ItemDetailRespons
 }
 
 export async function createItemPost(input: CreateItemInput): Promise<Item> {
-  const { data: { user } } = await supabase.auth.getUser();
-  const localSession = await getStoredLocalSession();
-  const currentUserId = user?.id || localSession?.user?.id || '00000000-0000-0000-0000-000000000002';
-  const posterNickname = localSession?.profile?.nickname || 'MariaS';
-  const posterCollege = localSession?.profile?.college || 'College of Information and Computing Sciences';
-
-  if (!input.title.trim()) throw new Error('Kailangang may pamagat ang gamit.');
-  if (!input.description.trim()) throw new Error('Kailangang may deskripsyon ang gamit.');
-  if (!input.category) throw new Error('Pumili ng kategorya.');
-  if (!input.location) throw new Error('Pumili ng lokasyon.');
-  if (!input.dateHappened) throw new Error('Pumili ng petsa.');
-
-  const isSensitive = SENSITIVE_CATEGORIES.includes(input.category);
-  const photoPath = isSensitive ? null : input.photoPath || null;
-  const requiresOfficePickup = isSensitive;
-
-  // 1. Try Supabase insert
-  try {
-    const { data: insertedItem, error: insertError } = await supabase
-      .from('items')
-      .insert({
-        user_id: currentUserId,
-        type: input.type,
-        title: input.title.trim(),
-        description: input.description.trim(),
-        category: input.category,
-        location: input.location,
-        date_happened: input.dateHappened,
-        photo_path: photoPath,
-        requires_office_pickup: requiresOfficePickup,
-      })
-      .select()
-      .single();
-
-    if (!insertError && insertedItem) {
-      LOCAL_ITEMS.unshift({
-        ...insertedItem,
-        posterNickname,
-        posterCollege,
-      });
-
-      findAndNotifyMatches(insertedItem).catch(() => {});
-      return insertedItem;
-    }
-  } catch (err) {
-    console.warn('Supabase insert failed, using local storage:', err);
-  }
-
-  // 2. Fallback local insert
-  const localItem: ItemWithMeta = {
-    id: 'item_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
-    user_id: currentUserId,
-    type: input.type,
-    title: input.title.trim(),
-    description: input.description.trim(),
-    category: input.category,
-    location: input.location,
-    date_happened: input.dateHappened,
-    photo_path: photoPath,
-    status: 'open',
-    is_hidden: false,
-    requires_office_pickup: requiresOfficePickup,
-    released_at: null,
-    auto_confirm_at: null,
-    expires_at: new Date(Date.now() + 2592000000).toISOString(),
-    created_at: new Date().toISOString(),
-    deleted_at: null,
-    posterNickname,
-    posterCollege,
-  };
-
-  LOCAL_ITEMS.unshift(localItem);
-  return localItem;
+  const { data, error } = await supabase.rpc('create_item_report', {
+    p_type: input.type,
+    p_title: input.title.trim(),
+    p_description: input.description.trim(),
+    p_category: input.category,
+    p_location: input.location,
+    p_date: input.dateHappened,
+    p_photo_path: input.photoPath ?? null,
+    p_private_details: input.privateDetails?.trim() || null,
+    p_question: input.secretQuestions?.[0]?.question ?? null,
+    p_answer_hash: input.secretQuestions?.[0]?.answerHmac ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return data;
 }

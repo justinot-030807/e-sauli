@@ -13,14 +13,14 @@ export function LoadingView({ message = 'Kinakarga...' }: LoadingViewProps) {
 
   return (
     <View style={[styles.centered, { backgroundColor: theme.background }]}>
-      <ActivityIndicator size="large" color={theme.primary} />
+      <ActivityIndicator accessibilityLabel={message} size="large" color={theme.primary} />
       <Text style={[styles.loadingText, { color: theme.textSecondary }]}>{message}</Text>
     </View>
   );
 }
 
 interface EmptyViewProps {
-  iconName?: any;
+  iconName?: React.ComponentProps<typeof Ionicons>['name'];
   title?: string;
   description?: string;
   actionLabel?: string;
@@ -44,6 +44,7 @@ export function EmptyView({
       <Text style={[styles.description, { color: theme.textSecondary }]}>{description}</Text>
       {actionLabel && onAction && (
         <TouchableOpacity
+          accessibilityRole="button"
           style={[styles.button, { backgroundColor: theme.primary }]}
           onPress={onAction}
           activeOpacity={0.8}
@@ -69,10 +70,11 @@ export function ErrorView({
   return (
     <View style={[styles.centered, { backgroundColor: theme.background }]}>
       <Ionicons name="alert-circle-outline" size={48} color={theme.error} style={{ marginBottom: Spacing.sm }} />
-      <Text style={[styles.title, { color: theme.error }]}>Nagka-aberya</Text>
+      <Text style={[styles.title, { color: theme.text }]}>Nagka-aberya</Text>
       <Text style={[styles.description, { color: theme.textSecondary }]}>{message}</Text>
       {onRetry && (
         <TouchableOpacity
+          accessibilityRole="button"
           style={[styles.button, { backgroundColor: theme.primary }]}
           onPress={onRetry}
           activeOpacity={0.8}
@@ -94,10 +96,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: Spacing.md,
     fontSize: FontSize.sm,
-  },
-  emoji: {
-    fontSize: 54,
-    marginBottom: Spacing.md,
   },
   title: {
     fontSize: FontSize.lg,

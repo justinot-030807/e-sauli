@@ -30,19 +30,22 @@ export default function ClaimChatScreen() {
 
   const [messages, setMessages] = useState<MessageWithSender[]>([]);
   const [inputText, setInputText] = useState('');
-  const [recipientId, setRecipientId] = useState<string | null>(null);
-  const [itemId, setItemId] = useState<string | null>(null);
   const [itemTitle, setItemTitle] = useState('Chat');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
+  const sending = useRef(false);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
 
   const loadData = useCallback(async () => {
-    if (!claimId) return;
+    if (!claimId) {
+      setError('Walang napiling pag-uusap.');
+      setIsLoading(false);
+      return;
+    }
     try {
       setIsLoading(true);
       setError(null);
@@ -52,11 +55,7 @@ export default function ClaimChatScreen() {
 
       // Load claim to find recipient and item
       const claim = await fetchClaimDetail(claimId);
-      setItemId(claim.item_id);
       setItemTitle(claim.item.title);
-
-      const recipient = user?.id === claim.claimant_id ? claim.item.user_id : claim.claimant_id;
-      setRecipientId(recipient);
 
       // Load initial message history
       const initialMessages = await fetchClaimMessages(claimId);
@@ -70,7 +69,8 @@ export default function ClaimChatScreen() {
   }, [claimId]);
 
   useEffect(() => {
-    loadData();
+    const frame = requestAnimationFrame(() => void loadData());
+    return () => cancelAnimationFrame(frame);
   }, [loadData]);
 
   // Realtime subscription for incoming messages
@@ -101,28 +101,27 @@ export default function ClaimChatScreen() {
   }, [claimId, currentUserId]);
 
   const handleSend = async () => {
-    if (!claimId || !recipientId || !itemId || !inputText.trim() || isSending) return;
+    if (!claimId || !inputText.trim() || sending.current) return;
 
     const textToSend = inputText.trim();
+    sending.current = true;
     setInputText('');
+    setError(null);
     setIsSending(true);
 
     try {
-      const sent = await sendClaimMessage(claimId, recipientId, textToSend, itemId);
-      setMessages((prev) => [
-        ...prev,
-        {
-          ...sent,
-          isMine: true,
-        },
-      ]);
+      const sent = await sendClaimMessage(claimId, textToSend);
+      setMessages((previous) => previous.some(({ id }) => id === sent.id)
+        ? previous
+        : [...previous, { ...sent, isMine: true }]);
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     } catch (err: any) {
-      console.error('Send message error:', err);
+      setInputText((current) => current || textToSend);
       setError(err?.message || 'Hindi naipadala ang mensahe.');
     } finally {
+      sending.current = false;
       setIsSending(false);
     }
   };

@@ -33,7 +33,7 @@ export default function LoginScreen() {
     setIsLoading(true);
     try {
       await signIn({ email: email.trim(), password });
-      router.replace('/(tabs)');
+      router.replace('/');
     } catch (err: any) {
       const message = err?.message || 'Hindi nakapag-login. Pakisubukang muli.';
       setError(message);
@@ -42,12 +42,12 @@ export default function LoginScreen() {
     }
   };
 
-  const handleDemoAccess = async (role: 'student' | 'admin') => {
+  const handleDemoAccess = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      await signInDemo(role);
-      router.replace('/(tabs)');
+      await signInDemo();
+      router.replace('/');
     } catch (err: any) {
       setError(err?.message || 'Nabigong mag-login sa demo.');
     } finally {
@@ -80,38 +80,27 @@ export default function LoginScreen() {
         {/* Quick Demo Access Card */}
         <View style={[styles.demoCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <Text style={[styles.demoCardTitle, { color: theme.text }]}>
-            Mabilisang Pagsubok (1-Tap Demo Access)
+            Subukan ang demo
           </Text>
           <Text style={[styles.demoCardSubtitle, { color: theme.textSecondary }]}>
-            Pumili ng account para subukan agad ang buong app nang walang kahirap-hirap:
+            Tingnan kung paano gumagana ang feed gamit ang mga halimbawang ulat.
           </Text>
 
           <View style={styles.demoButtonsContainer}>
             <TouchableOpacity
               style={[styles.demoButton, { backgroundColor: '#7a1f2b' }]}
-              onPress={() => handleDemoAccess('student')}
+              onPress={handleDemoAccess}
               disabled={isLoading}
               activeOpacity={0.85}
             >
               <Ionicons name="school-outline" size={20} color="#FFFFFF" style={styles.demoIcon} />
               <View style={styles.demoTextWrap}>
                 <Text style={styles.demoButtonLabel}>Estudyante (Maria Santos)</Text>
-                <Text style={styles.demoButtonSublabel}>Mag-post, mag-claim, at leaderboard</Text>
+                <Text style={styles.demoButtonSublabel}>Mga halimbawang ulat at leaderboard</Text>
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.demoButton, { backgroundColor: '#1E293B' }]}
-              onPress={() => handleDemoAccess('admin')}
-              disabled={isLoading}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="shield-checkmark-outline" size={20} color="#FFFFFF" style={styles.demoIcon} />
-              <View style={styles.demoTextWrap}>
-                <Text style={styles.demoButtonLabel}>Campus Administrator</Text>
-                <Text style={styles.demoButtonSublabel}>Admin dashboard at verifications</Text>
-              </View>
-            </TouchableOpacity>
+
           </View>
         </View>
 
@@ -156,7 +145,7 @@ export default function LoginScreen() {
                 color: theme.text,
               },
             ]}
-            placeholder="Ipasok ang password (default: password123)"
+            placeholder="Ipasok ang password"
             placeholderTextColor={theme.placeholder}
             value={password}
             onChangeText={setPassword}

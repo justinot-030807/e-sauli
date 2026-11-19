@@ -28,8 +28,8 @@ export async function getOfficeStatus(): Promise<OfficeStatusResult> {
 
   if (error || !settings) {
     return {
-      isOpen: true,
-      message: 'Bukas ang Opisina (Lunes hanggang Biyernes, 8:00 AM - 5:00 PM)',
+      isOpen: false,
+      message: 'Hindi makumpirma ang oras ng opisina.',
       settings: null,
     };
   }
@@ -76,75 +76,8 @@ export async function getOfficeStatus(): Promise<OfficeStatusResult> {
  * Sets status = 'released', released_at = now(), auto_confirm_at = now() + 7 days.
  */
 export async function markItemAsReturned(itemId: string): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, approval_status')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile || profile.approval_status !== 'approved') {
-    throw new Error('Kailangan ng aprubadong account upang maisagawa ang aksyong ito.');
-  }
-
-  const { data: item } = await supabase
-    .from('items')
-    .select('*')
-    .eq('id', itemId)
-    .single();
-
-  if (!item) throw new Error('Item not found');
-
-  // Handover Rules (Specification Section 14):
-  if (item.requires_office_pickup) {
-    if (profile.role !== 'admin') {
-      throw new Error('Ang admin lamang sa Lost & Found Office ang may pahintulot na i-release ang gamit na ito.');
-    }
-
-    const officeStatus = await getOfficeStatus();
-    if (!officeStatus.isOpen) {
-      throw new Error(`Hindi maaaring mag-release habang sarado ang opisina. ${officeStatus.message}`);
-    }
-  } else {
-    if (item.user_id !== user.id && profile.role !== 'admin') {
-      throw new Error('Tanging ang nag-post o admin lamang ang maaaring magmarka na naisauli ang gamit.');
-    }
-  }
-
-  // Find the approved claim to identify the claimant/owner
-  const { data: approvedClaim } = await supabase
-    .from('claims')
-    .select('claimant_id')
-    .eq('item_id', itemId)
-    .eq('status', 'approved')
-    .maybeSingle();
-
-  const now = new Date();
-  const autoConfirmDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-  const { error } = await supabase
-    .from('items')
-    .update({
-      status: 'released',
-      released_at: now.toISOString(),
-      auto_confirm_at: autoConfirmDate.toISOString(),
-    })
-    .eq('id', itemId);
-
+  const { error } = await supabase.rpc('release_item', { p_item_id: itemId });
   if (error) throw new Error(error.message);
-
-  // Notify claimant / owner
-  if (approvedClaim) {
-    await supabase.from('notifications').insert({
-      user_id: approvedClaim.claimant_id,
-      type: 'confirm_receipt_reminder',
-      body: `Nai-release na ang gamit ("${item.title}"). Mangyaring kumpirmahin ang pagkakatanggap sa loob ng 7 araw (+5 Aura points).`,
-      item_id: itemId,
-      read: false,
-    });
-  }
 }
 
 /**
@@ -191,24 +124,8 @@ export async function confirmReturn(
  * Flags `requires_office_pickup = true` and logs to admin audit trail.
  */
 export async function surrenderToOffice(itemId: string): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
-
-  const { error } = await supabase
-    .from('items')
-    .update({ requires_office_pickup: true })
-    .eq('id', itemId);
-
+  const { error } = await supabase.rpc('surrender_item', { p_item_id: itemId });
   if (error) throw new Error(error.message);
-
-  // Log in admin audit log
-  await supabase.from('admin_audit_log').insert({
-    admin_id: user.id,
-    action: 'item_surrendered_to_office',
-    target_type: 'item',
-    target_id: itemId,
-    details: { surrendered_by: user.id },
-  });
 }
 
 /**

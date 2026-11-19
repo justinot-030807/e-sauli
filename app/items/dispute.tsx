@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { confirmAction } from '@/utils/confirmAction';
 import {
   View,
   Text,
@@ -34,12 +35,12 @@ export default function DisputeScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadItem();
-  }, [id]);
-
-  const loadItem = async () => {
-    if (!id) return;
+  const loadItem = useCallback(async () => {
+    if (!id) {
+      setError('Walang napiling gamit.');
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
@@ -54,7 +55,12 @@ export default function DisputeScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => void loadItem());
+    return () => cancelAnimationFrame(frame);
+  }, [loadItem]);
 
   const handleSubmitDispute = async () => {
     if (!id) return;
@@ -66,11 +72,9 @@ export default function DisputeScreen() {
 
     const fullReason = `${selectedReason}: ${explanation.trim()}`;
 
-    Alert.alert(
+    confirmAction(
       'Kumpirmahin ang Pagsumite ng Dispute',
       'Ang paghahain ng dispute ay magpapahinto sa awtomatikong kumpirmasyon ng item at aabisuhan ang mga administrator para sa pagsusuri. Sigurado ka ba?',
-      [
-        { text: 'Kanselahin', style: 'cancel' },
         {
           text: 'Oo, Isumite',
           style: 'destructive',
@@ -78,16 +82,7 @@ export default function DisputeScreen() {
             try {
               setSubmitting(true);
               await raiseDispute(id, fullReason);
-              Alert.alert(
-                'Dispute Naitala',
-                'Matagumpay na naitala ang iyong dispute. Aabisuhan ang administrasyon ng Lost & Found upang repasuhin ang insidente.',
-                [
-                  {
-                    text: 'OK',
-                    onPress: () => router.replace('/(tabs)'),
-                  },
-                ]
-              );
+              router.replace('/(tabs)');
             } catch (err: any) {
               Alert.alert('May Error', err.message || 'Nabigong isumite ang dispute.');
             } finally {
@@ -95,7 +90,6 @@ export default function DisputeScreen() {
             }
           },
         },
-      ]
     );
   };
 

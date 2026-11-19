@@ -27,7 +27,8 @@ const TIMEFRAMES: { key: LeaderboardTimeframe; label: string }[] = [
 ];
 
 export default function LeaderboardScreen() {
-  const { user, profile } = useAuthContext();
+  const { user, profile, session } = useAuthContext();
+  const isDemo = !!user && !session;
 
   const [timeframe, setTimeframe] = useState<LeaderboardTimeframe>('month');
   const [selectedCollege, setSelectedCollege] = useState<string | null>(null);
@@ -40,10 +41,13 @@ export default function LeaderboardScreen() {
   const loadData = useCallback(async () => {
     try {
       setError(null);
-      const data = await fetchLeaderboard(timeframe, selectedCollege, 50);
+      const data = await fetchLeaderboard(timeframe, selectedCollege, 50, isDemo);
       setLeaderboard(data);
 
-      if (user?.id) {
+      if (isDemo) {
+        const demoEntry = data.find((entry) => entry.userId === user?.id);
+        setUserRank(demoEntry ? { rank: demoEntry.rank, points: demoEntry.points, pointsToTop10: 0 } : null);
+      } else if (user?.id) {
         const rankInfo = await fetchUserRank(user.id, timeframe, selectedCollege);
         setUserRank(rankInfo);
       }
@@ -54,11 +58,11 @@ export default function LeaderboardScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [timeframe, selectedCollege, user?.id]);
+  }, [timeframe, selectedCollege, user, isDemo]);
 
   useEffect(() => {
-    setLoading(true);
-    loadData();
+    const frame = requestAnimationFrame(() => { setLoading(true); void loadData(); });
+    return () => cancelAnimationFrame(frame);
   }, [loadData]);
 
   const onRefresh = () => {
@@ -86,7 +90,7 @@ export default function LeaderboardScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Aura Farming</Text>
-        <Text style={styles.headerSubtitle}>Mga nagbabalik ng gamit sa campus</Text>
+        <Text style={styles.headerSubtitle}>{isDemo ? 'Demo · Halimbawang ranggo' : 'Mga nagbabalik ng gamit sa campus'}</Text>
       </View>
 
       {/* Timeframe Tabs */}

@@ -390,6 +390,37 @@ export type Database = {
           question: string;
         }[];
       };
+      create_item_report: {
+        Args: {
+          p_type: ItemType;
+          p_title: string;
+          p_description: string;
+          p_category: string;
+          p_location: string;
+          p_date: string;
+          p_photo_path: string | null;
+          p_private_details: string | null;
+          p_question: string | null;
+          p_answer_hash: string | null;
+        };
+        Returns: Item;
+      };
+      submit_item_claim: {
+        Args: { p_item_id: string; p_proof: string; p_type: ItemType };
+        Returns: Claim;
+      };
+      resolve_item_claim: {
+        Args: { p_claim_id: string; p_approve: boolean };
+        Returns: void;
+      };
+      release_item: {
+        Args: { p_item_id: string };
+        Returns: void;
+      };
+      surrender_item: {
+        Args: { p_item_id: string };
+        Returns: void;
+      };
       verify_claim_secret: {
         Args: { p_item_id: string; p_answer_hash: string };
         Returns: boolean;

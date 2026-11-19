@@ -87,7 +87,7 @@ export default function PrivacyConsentScreen() {
 
       <View style={[styles.footer, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
         <Text style={[styles.footerNote, { color: theme.textSecondary }]}>
-          By tapping "I Accept", you consent to the collection and processing of your data as described above.
+          By tapping &quot;I Accept&quot;, you consent to the collection and processing of your data as described above.
         </Text>
         <TouchableOpacity
           style={[styles.button, { backgroundColor: theme.primary }, isLoading && styles.buttonDisabled]}

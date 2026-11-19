@@ -17,8 +17,7 @@ export async function fetchMyNotifications(): Promise<Notification[]> {
     .limit(50);
 
   if (error || !notifications) {
-    console.error('Error fetching notifications:', error);
-    return [];
+    throw new Error('Hindi maikarga ang mga abiso.');
   }
 
   return notifications;
@@ -28,10 +27,11 @@ export async function fetchMyNotifications(): Promise<Notification[]> {
  * Marks a single notification as read.
  */
 export async function markNotificationAsRead(id: string): Promise<void> {
-  await supabase
+  const { error } = await supabase
     .from('notifications')
     .update({ read: true })
     .eq('id', id);
+  if (error) throw new Error('Hindi namarkahan ang abiso.');
 }
 
 /**
@@ -41,11 +41,12 @@ export async function markAllNotificationsAsRead(): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
 
-  await supabase
+  const { error } = await supabase
     .from('notifications')
     .update({ read: true })
     .eq('user_id', user.id)
     .eq('read', false);
+  if (error) throw new Error('Hindi namarkahan ang mga abiso.');
 }
 
 /**

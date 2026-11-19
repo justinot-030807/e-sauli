@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -27,9 +27,16 @@ import {
   type CampusLocation,
 } from '@/constants/categories';
 import { createItemPost } from '@/services/items';
-import { uploadItemPhoto } from '@/services/storage';
+import { removeItemPhoto, uploadItemPhoto } from '@/services/storage';
 import { supabase } from '@/lib/supabase';
 import type { ItemType } from '@/types/database';
+
+function todayInManila() {
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date());
+  return ['year', 'month', 'day'].map((part) => parts.find(({ type }) => type === part)?.value).join('-');
+}
 
 export default function PostItemScreen() {
   const theme = useTheme();
@@ -40,7 +47,7 @@ export default function PostItemScreen() {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<ItemCategory>('Phone/Gadgets');
   const [location, setLocation] = useState<CampusLocation>('Library');
-  const [dateHappened, setDateHappened] = useState(new Date().toISOString().split('T')[0]);
+  const [dateHappened, setDateHappened] = useState(todayInManila);
 
   // Image Upload State
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
@@ -52,6 +59,7 @@ export default function PostItemScreen() {
   const [privateDetails, setPrivateDetails] = useState('');
 
   // Submission State
+  const submitting = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,8 +83,8 @@ export default function PostItemScreen() {
     }
 
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
+      const permission = Platform.OS === 'web' ? null : await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permission && !permission.granted) {
         Alert.alert('Pahintulot', 'Kinakailangan ang pahintulot upang makapili ng larawan.');
         return;
       }
@@ -98,12 +106,21 @@ export default function PostItemScreen() {
   };
 
   const handleSubmit = async () => {
+    if (submitting.current) return;
     if (!title.trim()) {
       setError('Pakilagay ang pamagat ng gamit.');
       return;
     }
     if (!description.trim()) {
       setError('Pakilagay ang deskripsyon ng gamit.');
+      return;
+    }
+    const date = new Date(dateHappened + 'T00:00:00Z');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateHappened)
+      || Number.isNaN(date.getTime())
+      || date.toISOString().slice(0, 10) !== dateHappened
+      || dateHappened > todayInManila()) {
+      setError('Maglagay ng wastong petsa (YYYY-MM-DD) hanggang ngayong araw.');
       return;
     }
     if (hasSecretQuestion && itemType === 'found') {
@@ -114,20 +131,21 @@ export default function PostItemScreen() {
     }
 
     setError(null);
+    submitting.current = true;
     setIsSubmitting(true);
+    let photoPath: string | null = null;
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Kailangang naka-sign in upang mag-post.');
 
       // 1. Upload photo if selected and allowed
-      let photoPath: string | null = null;
       if (selectedImageUri && !isSensitive) {
         photoPath = await uploadItemPhoto(user.id, selectedImageUri, category);
       }
 
       // 2. Prepare secret questions if enabled
-      let secretQuestionsList: Array<{ question: string; answerHmac: string }> | undefined;
+      let secretQuestionsList: { question: string; answerHmac: string }[] | undefined;
       if (hasSecretQuestion && itemType === 'found' && secretQuestion.trim() && secretAnswer.trim()) {
         // Hash the answer for storage
         const answerHash = await Crypto.digestStringAsync(
@@ -155,22 +173,12 @@ export default function PostItemScreen() {
         secretQuestions: secretQuestionsList,
       });
 
-      Alert.alert(
-        'Matagumpay na Na-post!',
-        itemType === 'found'
-          ? 'Nai-report ang nahanap na gamit! Makakatanggap ka ng abiso kung may makatugmang nawawalang gamit.'
-          : 'Nai-report ang nawalang gamit. Aabisuhan ka kapag may nakatugmang gamit.',
-        [
-          {
-            text: 'Tingnan ang Post',
-            onPress: () => router.replace({ pathname: '/items/[id]', params: { id: created.id } }),
-          },
-        ]
-      );
+      router.replace({ pathname: '/items/[id]', params: { id: created.id } });
     } catch (err: any) {
-      console.error('Post creation error:', err);
+      if (photoPath) void removeItemPhoto(photoPath).catch(() => undefined);
       setError(err?.message || 'Nagka-aberya sa pag-post. Pakisubukang muli.');
     } finally {
+      submitting.current = false;
       setIsSubmitting(false);
     }
   };

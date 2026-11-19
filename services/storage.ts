@@ -5,8 +5,6 @@ import { SENSITIVE_CATEGORIES, type ItemCategory } from '@/constants/categories'
 const PRIVATE_BUCKET = 'item-photos';
 const MAX_DIMENSION = 1280;
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB limit before compression
-const TARGET_SIZE_BYTES = 200 * 1024; // ~200KB target after compression
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const SIGNED_URL_EXPIRES_IN_SECONDS = 3600; // 1 hour short-lived signed URL
 
 export interface ProcessedImage {
@@ -122,4 +120,10 @@ export async function getSignedPhotoUrl(
   }
 
   return data.signedUrl;
+}
+
+
+export async function removeItemPhoto(photoPath: string): Promise<void> {
+  const { error } = await supabase.storage.from(PRIVATE_BUCKET).remove([photoPath]);
+  if (error) throw error;
 }

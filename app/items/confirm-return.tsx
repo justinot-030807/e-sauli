@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { confirmAction } from '@/utils/confirmAction';
 import {
   View,
   Text,
@@ -30,12 +31,12 @@ export default function ConfirmReturnScreen() {
   const [result, setResult] = useState<ConfirmReturnResult | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  useEffect(() => {
-    loadItem();
-  }, [id]);
-
-  const loadItem = async () => {
-    if (!id) return;
+  const loadItem = useCallback(async () => {
+    if (!id) {
+      setError('Walang napiling gamit.');
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
@@ -50,16 +51,19 @@ export default function ConfirmReturnScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => void loadItem());
+    return () => cancelAnimationFrame(frame);
+  }, [loadItem]);
 
   const handleConfirmReceipt = async () => {
     if (!id) return;
 
-    Alert.alert(
+    confirmAction(
       'Kumpirmahin ang Pagkakatanggap',
       'Sigurado ka bang natanggap mo na nang maayos ang iyong gamit? Hindi na ito mababawi kapag nakumpirma na.',
-      [
-        { text: 'Kanselahin', style: 'cancel' },
         {
           text: 'Oo, Natanggap Ko Na',
           style: 'default',
@@ -76,7 +80,6 @@ export default function ConfirmReturnScreen() {
             }
           },
         },
-      ]
     );
   };
 
